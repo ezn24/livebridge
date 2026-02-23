@@ -523,6 +523,9 @@ object LiveUpdateNotifier {
             if (!rule.isRelevant(packageLower, combinedText)) {
                 continue
             }
+            if (rule.isExcluded(combinedText)) {
+                continue
+            }
 
             val matchedSignal = rule.signals.firstOrNull { it.pattern.containsMatchIn(combinedText) } ?: continue
             val entityToken = extractEntityToken(combinedText, parserDictionary)

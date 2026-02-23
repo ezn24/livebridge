@@ -152,17 +152,26 @@ class ConverterPrefs(context: Context) {
     }
 
     fun getCustomParserDictionaryRaw(): String? {
-        val value = prefs.getString(KEY_CUSTOM_PARSER_DICTIONARY, null)?.trim().orEmpty()
+        val value = (
+                prefs.getString(KEY_USER_PARSER_DICTIONARY, null)
+                    ?: prefs.getString(KEY_CUSTOM_PARSER_DICTIONARY_LEGACY, null)
+                )?.trim().orEmpty()
         return value.ifBlank { null }
     }
 
     fun setCustomParserDictionaryRaw(value: String?) {
         val normalized = value?.trim().orEmpty()
-        prefs.edit().putString(KEY_CUSTOM_PARSER_DICTIONARY, normalized.ifBlank { null }).apply()
+        prefs.edit()
+            .putString(KEY_USER_PARSER_DICTIONARY, normalized.ifBlank { null })
+            .remove(KEY_CUSTOM_PARSER_DICTIONARY_LEGACY)
+            .apply()
     }
 
     fun clearCustomParserDictionary() {
-        prefs.edit().remove(KEY_CUSTOM_PARSER_DICTIONARY).apply()
+        prefs.edit()
+            .remove(KEY_USER_PARSER_DICTIONARY)
+            .remove(KEY_CUSTOM_PARSER_DICTIONARY_LEGACY)
+            .apply()
     }
 
     fun hasCustomParserDictionary(): Boolean {
@@ -237,7 +246,8 @@ class ConverterPrefs(context: Context) {
         private const val KEY_EXPANDED_SECTIONS = "expanded_sections"
         private const val KEY_EXPANDED_SECTIONS_SET = "expanded_sections_set"
         private const val KEY_APP_PRESENTATION_OVERRIDES = "app_presentation_overrides"
-        private const val KEY_CUSTOM_PARSER_DICTIONARY = "custom_parser_dictionary"
+        private const val KEY_USER_PARSER_DICTIONARY = "user_parser_dictionary"
+        private const val KEY_CUSTOM_PARSER_DICTIONARY_LEGACY = "custom_parser_dictionary"
 
         private const val KEY_PACKAGE_FILTER_LEGACY = "package_filter"
     }

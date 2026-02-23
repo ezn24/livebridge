@@ -23,151 +23,20 @@ internal data class LiveParserDictionary(
 
     companion object {
         fun default(): LiveParserDictionary {
-            val regexOptions = setOf(RegexOption.IGNORE_CASE)
+            val emptyRegex = Regex("(?!)")
             return LiveParserDictionary(
-                smartRules = listOf(
-                    SmartRuleEntry(
-                        id = "food",
-                        maxStage = 4,
-                        packageHints = setOf(
-                            "kfc", "ubereats", "doordash", "grubhub", "delivery", "еда", "food"
-                        ),
-                        textTriggers = setOf(
-                            "заказ", "order", "доставка", "delivery", "курьер", "courier", "еда", "food"
-                        ),
-                        signals = listOf(
-                            SmartSignalEntry(
-                                stage = 4,
-                                pattern = Regex(
-                                    "(доставлен|получен|delivered|completed|приятного аппетита|enjoy)",
-                                    regexOptions
-                                )
-                            ),
-                            SmartSignalEntry(
-                                stage = 3,
-                                pattern = Regex(
-                                    "(курьер[^\\n]*в пути|out for delivery|on the way|едет к вам)",
-                                    regexOptions
-                                )
-                            ),
-                            SmartSignalEntry(
-                                stage = 2,
-                                pattern = Regex(
-                                    "(собираем|упаковываем|почти готов|packed|almost ready|ready for pickup)",
-                                    regexOptions
-                                )
-                            ),
-                            SmartSignalEntry(
-                                stage = 1,
-                                pattern = Regex(
-                                    "(готовится|готовим|preparing|in kitchen|is being prepared|is being cooked|being cooked|cooking|cooked for you)",
-                                    regexOptions
-                                )
-                            ),
-                            SmartSignalEntry(
-                                stage = 0,
-                                pattern = Regex(
-                                    "(заказ[^\\n]*(принят|создан)|order[^\\n]*(received|accepted|confirmed))",
-                                    regexOptions
-                                )
-                            )
-                        )
-                    ),
-                    SmartRuleEntry(
-                        id = "taxi",
-                        maxStage = 4,
-                        packageHints = setOf("taxi", "uber", "lyft", "bolt", "yango", "yandex"),
-                        textTriggers = setOf("такси", "taxi", "ride", "поездка", "водитель", "driver"),
-                        signals = listOf(
-                            SmartSignalEntry(
-                                stage = 4,
-                                pattern = Regex(
-                                    "(поездка завершена|trip completed|arrived at destination|you'?ve arrived)",
-                                    regexOptions
-                                )
-                            ),
-                            SmartSignalEntry(
-                                stage = 3,
-                                pattern = Regex(
-                                    "(поездка началась|trip started|ride started|enjoy your ride)",
-                                    regexOptions
-                                )
-                            ),
-                            SmartSignalEntry(
-                                stage = 2,
-                                pattern = Regex(
-                                    "(едет к вам|подъезжает|driver[^\\n]*arriving|arriving in|on the way)",
-                                    regexOptions
-                                )
-                            ),
-                            SmartSignalEntry(
-                                stage = 1,
-                                pattern = Regex(
-                                    "(водитель найден|driver found|driver assigned|matched with driver)",
-                                    regexOptions
-                                )
-                            ),
-                            SmartSignalEntry(
-                                stage = 0,
-                                pattern = Regex(
-                                    "(поиск[^\\n]*водител|ищем[^\\n]*водител|searching for (a )?driver|finding driver)",
-                                    regexOptions
-                                )
-                            )
-                        )
-                    )
-                ),
-                otpStrongTriggers = setOf(
-                    "otp",
-                    "one-time password",
-                    "one time password",
-                    "verification code",
-                    "security code",
-                    "login code",
-                    "passcode",
-                    "2fa",
-                    "auth code",
-                    "sms code",
-                    "код подтверждения",
-                    "код входа",
-                    "код для входа",
-                    "код аккаунта",
-                    "одноразовый",
-                    "код из смс"
-                ),
-                otpLooseTriggerPattern = Regex(
-                    "(?:(?:\\bcode\\b|\\bкод\\b)\\s*[:#-]?\\s*\\d{4,8})",
-                    regexOptions
-                ),
-                moneyContextPattern = Regex(
-                    "(₽|руб\\.?|rub|usd|eur|kzt|тенге|р\\.|\\$|€|price|total|amount|sum|сумм|цена|стоимост|итого)",
-                    regexOptions
-                ),
-                otpCodePatterns = listOf(
-                    Regex("(?<!\\d)(\\d{4,8})(?!\\d)"),
-                    Regex("(?<!\\d)(\\d(?:[\\s-]?\\d){3,7})(?!\\d)")
-                ),
-                orderContextHints = setOf("заказ", "order", "delivery", "достав"),
-                entityTokenPatterns = listOf(
-                    Regex("(?:заказ|order|trip|ride|поездк[аы])\\s*(?:#|№)?\\s*([a-z0-9-]{2,16})"),
-                    Regex("(?:#|№)\\s*([a-z0-9-]{2,16})"),
-                    Regex("\\b(\\d{4,10})\\b")
-                ),
-                statusLabels = mapOf(
-                    "food" to StageLabelsByLocale(
-                        ru = mapOf(0 to "Оплачен", 1 to "Готовится", 2 to "Готов"),
-                        en = mapOf(0 to "Paid", 1 to "Cooking", 2 to "Ready")
-                    ),
-                    "taxi" to StageLabelsByLocale(
-                        ru = mapOf(0 to "Поиск", 1 to "Водитель", 2 to "Подъезжает", 3 to "В пути", 4 to "Завершено"),
-                        en = mapOf(0 to "Searching", 1 to "Driver", 2 to "Arriving", 3 to "On trip", 4 to "Done")
-                    )
-                )
+                smartRules = emptyList(),
+                otpStrongTriggers = emptySet(),
+                otpLooseTriggerPattern = emptyRegex,
+                moneyContextPattern = emptyRegex,
+                otpCodePatterns = emptyList(),
+                orderContextHints = emptySet(),
+                entityTokenPatterns = emptyList(),
+                statusLabels = emptyMap()
             )
         }
 
-        fun fromJson(raw: String): LiveParserDictionary? {
-            val defaults = default()
+        fun fromJson(raw: String, defaults: LiveParserDictionary = default()): LiveParserDictionary? {
             val root = try {
                 JSONObject(raw)
             } catch (_: Throwable) {
@@ -224,6 +93,7 @@ internal data class LiveParserDictionary(
                 val maxStage = item.optInt("max_stage", 1).coerceAtLeast(1)
                 val packageHints = parseStringSet(item.optJSONArray("package_hints"))
                 val textTriggers = parseStringSet(item.optJSONArray("text_triggers"))
+                val excludePatterns = parseRegexList(item.optJSONArray("exclude_patterns"), ignoreCase = true)
                 val signals = parseSignals(item.optJSONArray("signals"))
 
                 if (signals.isEmpty()) {
@@ -235,6 +105,7 @@ internal data class LiveParserDictionary(
                     maxStage = maxStage,
                     packageHints = packageHints,
                     textTriggers = textTriggers,
+                    excludePatterns = excludePatterns,
                     signals = signals
                 )
             }
@@ -336,10 +207,15 @@ internal data class SmartRuleEntry(
     val maxStage: Int,
     val packageHints: Set<String>,
     val textTriggers: Set<String>,
+    val excludePatterns: List<Regex> = emptyList(),
     val signals: List<SmartSignalEntry>
 ) {
     fun isRelevant(packageNameLower: String, textLower: String): Boolean {
         return packageHints.any(packageNameLower::contains) || textTriggers.any(textLower::contains)
+    }
+
+    fun isExcluded(textLower: String): Boolean {
+        return excludePatterns.any { it.containsMatchIn(textLower) }
     }
 }
 
@@ -394,12 +270,12 @@ internal object LiveParserDictionaryLoader {
                 }
             }
 
+            val bundledDictionary = loadFromAssets(context) ?: LiveParserDictionary.default()
             val loaded = if (!customRaw.isNullOrBlank()) {
-                LiveParserDictionary.fromJson(customRaw)
-                    ?: loadFromAssets(context)
-                    ?: LiveParserDictionary.default()
+                LiveParserDictionary.fromJson(customRaw, defaults = bundledDictionary)
+                    ?: bundledDictionary
             } else {
-                loadFromAssets(context) ?: LiveParserDictionary.default()
+                bundledDictionary
             }
 
             cachedSourceKey = sourceKey

@@ -22,6 +22,11 @@
         "еда",
         "food"
       ],
+      "exclude_patterns": [
+        "(с дн[её]м рождения|happy birthday|birthday)",
+        "(дарим\\s+скидк|скидк[\\p{L}]*\\s*\\d+%|\\d+%\\s*(скидк|off)|акци[яи]|промокод|promo\\s*code|coupon|cash\\s*back|кэшб[еэ]к)",
+        "(при\\s+заказе\\s+от\\s*\\d|order\\s+from\\s*\\d)"
+      ],
       "signals": [
         {
           "stage": 4,

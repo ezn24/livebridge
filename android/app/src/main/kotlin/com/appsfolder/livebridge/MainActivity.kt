@@ -35,6 +35,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.Locale
 import java.util.concurrent.Executors
@@ -152,12 +153,18 @@ class MainActivity : FlutterActivity() {
             )
 
             "saveParserDictionaryToDownloads" -> {
-                val raw = prefs.getCustomParserDictionaryRaw() ?: loadBundledParserDictionaryJson().orEmpty()
+                val userRaw = prefs.getCustomParserDictionaryRaw()
+                val raw = userRaw ?: loadBundledParserDictionaryJson().orEmpty()
                 if (raw.isBlank()) {
                     res.error("dictionary_empty", "Dictionary payload is empty", null)
                     return
                 }
-                val savedUri = saveParserDictionaryToDownloads(raw)
+                val filePrefix = if (userRaw.isNullOrBlank()) {
+                    "livebridge_dictionary"
+                } else {
+                    "livebridge_user_dictionary"
+                }
+                val savedUri = saveJsonToDownloads(raw = raw, filePrefix = filePrefix)
                 if (savedUri == null) {
                     res.error("save_failed", "Unable to save dictionary to Downloads", null)
                 } else {
@@ -171,7 +178,7 @@ class MainActivity : FlutterActivity() {
                     res.error("invalid_dictionary", "Dictionary payload is empty", null)
                     return
                 }
-                if (LiveParserDictionary.fromJson(raw) == null) {
+                if (!isValidJsonObject(raw)) {
                     res.error("invalid_dictionary", "Dictionary JSON is invalid", null)
                     return
                 }
@@ -262,8 +269,8 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun saveParserDictionaryToDownloads(raw: String): String? {
-        return saveJsonToDownloads(raw = raw, filePrefix = "livebridge_dictionary")
+    private fun isValidJsonObject(raw: String): Boolean {
+        return runCatching { JSONObject(raw) }.isSuccess
     }
 
     private fun saveJsonToDownloads(raw: String, filePrefix: String): String? {
