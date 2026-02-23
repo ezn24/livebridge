@@ -154,6 +154,10 @@ class LiveBridgePlatform {
       marketName:
           (m['marketName'] as String?) ?? ((m['model'] as String?) ?? ''),
       model: (m['model'] as String?) ?? '',
+      rawModel: (m['rawModel'] as String?) ?? '',
+      product: (m['product'] as String?) ?? '',
+      fingerprint: (m['fingerprint'] as String?) ?? '',
+      display: (m['display'] as String?) ?? '',
     );
   }
 }

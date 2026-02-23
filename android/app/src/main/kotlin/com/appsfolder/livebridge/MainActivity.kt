@@ -530,7 +530,10 @@ class MainActivity : FlutterActivity() {
             "brand" to (Build.BRAND ?: ""),
             "model" to mn,
             "marketName" to mn,
-            "rawModel" to (Build.MODEL ?: "")
+            "rawModel" to (Build.MODEL ?: ""),
+            "product" to (Build.PRODUCT ?: ""),
+            "fingerprint" to (Build.FINGERPRINT ?: ""),
+            "display" to (Build.DISPLAY ?: "")
         )
     }
 

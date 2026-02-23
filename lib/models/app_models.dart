@@ -18,12 +18,20 @@ class DeviceInfo {
     required this.brand,
     required this.marketName,
     required this.model,
+    this.rawModel = '',
+    this.product = '',
+    this.fingerprint = '',
+    this.display = '',
   });
 
   final String manufacturer;
   final String brand;
   final String marketName;
   final String model;
+  final String rawModel;
+  final String product;
+  final String fingerprint;
+  final String display;
 
   bool get isPixel {
     final String all = '$manufacturer $brand $marketName $model'.toLowerCase();
@@ -34,6 +42,19 @@ class DeviceInfo {
     final String all = '$manufacturer $brand'.toLowerCase();
     return all.contains('samsung');
   }
+
+  bool get isAospDevice {
+    final String all =
+        '$manufacturer $brand $marketName $model $rawModel $product '
+                '$fingerprint $display'
+            .toLowerCase();
+    return isPixel ||
+        all.contains('nothing') ||
+        all.contains('motorola') ||
+        all.contains('lineage');
+  }
+
+  bool get shouldHideLiveUpdatesPromotion => isSamsung || isAospDevice;
 
   String get label {
     if (marketName.isNotEmpty) return marketName;

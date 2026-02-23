@@ -41,7 +41,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool _dictionaryActionInProgress = false;
   bool _showBackgroundWarning = false;
   bool _showSamsungDeveloperWarning = false;
-  bool _isSamsungDevice = false;
+  bool _hidePromotedAccess = false;
   String _deviceLabelForWarning = '';
   final Set<String> _expandedSections = <String>{};
   bool _expandedSectionsLoaded = false;
@@ -58,7 +58,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool get _hasAllAccessPermissions =>
       _listenerEnabled &&
       _notificationsGranted &&
-      (_isSamsungDevice || _canPostPromoted);
+      (_hidePromotedAccess || _canPostPromoted);
 
   @override
   void initState() {
@@ -188,7 +188,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         final bool allAccessPermissionsGranted =
             listenerEnabled &&
             notificationsGranted &&
-            (deviceInfo.isSamsung || canPostPromoted);
+            (deviceInfo.shouldHideLiveUpdatesPromotion || canPostPromoted);
         if (!_didInitSectionDefaults) {
           if (!_hasPersistedExpandedSections) {
             if (allAccessPermissionsGranted) {
@@ -209,7 +209,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         _otpDetectionEnabled = otpDetectionEnabled;
         _otpAutoCopyEnabled = otpAutoCopyEnabled;
         _hasCustomParserDictionary = hasCustomParserDictionary;
-        _isSamsungDevice = deviceInfo.isSamsung;
+        _hidePromotedAccess = deviceInfo.shouldHideLiveUpdatesPromotion;
         _showBackgroundWarning =
             !deviceInfo.isPixel &&
             !deviceInfo.isSamsung &&
@@ -1039,7 +1039,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                 ? _openAppNotificationSettings
                 : _requestNotificationPermission,
           ),
-          if (!_isSamsungDevice)
+          if (!_hidePromotedAccess)
             _statusRow(
               label: s.liveUpdatesAccess,
               enabled: _canPostPromoted,
