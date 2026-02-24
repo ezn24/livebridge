@@ -75,7 +75,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool _masterBlockedHapticInProgress = false;
 
   bool get _canToggleMaster => _listenerEnabled && _notificationsGranted;
-  bool get _effectiveConverterEnabled => _canToggleMaster && _converterEnabled;
+  bool get _masterSwitchValue => _canToggleMaster && _converterEnabled;
   bool get _hasAllAccessPermissions =>
       _listenerEnabled &&
       _notificationsGranted &&
@@ -146,6 +146,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshState(showLoading: false));
       unawaited(_checkForUpdatesIfNeeded());
     }
   }
@@ -389,54 +390,166 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
       }
 
       await LiveBridgePlatform.setUpdateLastCheckAtMs(nowMs);
-
-      final _GithubReleaseInfo? latest = await _fetchLatestRelease();
-      if (latest == null) {
-        return;
-      }
-
-      final String currentVersion = _currentAppVersion.isNotEmpty
-          ? _currentAppVersion
-          : await LiveBridgePlatform.getAppVersionName();
-      final bool hasUpdate = _isReleaseNewer(
-        currentVersion: currentVersion,
-        latestVersion: latest.version,
-      );
-
-      await LiveBridgePlatform.setUpdateCachedLatestVersion(latest.version);
-      await LiveBridgePlatform.setUpdateCachedAvailable(hasUpdate);
-
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _currentAppVersion = currentVersion;
-        _latestReleaseVersion = latest.version;
-        _updateAvailable = hasUpdate;
-      });
-
-      if (!hasUpdate) {
-        return;
-      }
-
-      final String lastNotifiedVersion =
-          await LiveBridgePlatform.getUpdateLastNotifiedVersion();
-      if (lastNotifiedVersion == latest.version) {
-        return;
-      }
-
-      final bool notified =
-          await LiveBridgePlatform.showUpdateAvailableNotification(
-            version: latest.version,
-            releaseUrl: latest.htmlUrl,
-          );
-      if (notified) {
-        await LiveBridgePlatform.setUpdateLastNotifiedVersion(latest.version);
-      }
+      await _checkReleaseUpdateAvailability();
+      await _syncParserDictionaryWithGithubIfNeeded();
     } catch (_) {
     } finally {
       _isCheckingUpdates = false;
     }
+  }
+
+  Future<void> _checkReleaseUpdateAvailability() async {
+    final _GithubReleaseInfo? latest = await _fetchLatestRelease();
+    if (latest == null) {
+      return;
+    }
+
+    final String currentVersion = _currentAppVersion.isNotEmpty
+        ? _currentAppVersion
+        : await LiveBridgePlatform.getAppVersionName();
+    final bool hasUpdate = _isReleaseNewer(
+      currentVersion: currentVersion,
+      latestVersion: latest.version,
+    );
+
+    await LiveBridgePlatform.setUpdateCachedLatestVersion(latest.version);
+    await LiveBridgePlatform.setUpdateCachedAvailable(hasUpdate);
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _currentAppVersion = currentVersion;
+      _latestReleaseVersion = latest.version;
+      _updateAvailable = hasUpdate;
+    });
+
+    if (!hasUpdate) {
+      return;
+    }
+
+    final String lastNotifiedVersion =
+        await LiveBridgePlatform.getUpdateLastNotifiedVersion();
+    if (lastNotifiedVersion == latest.version) {
+      return;
+    }
+
+    final bool notified =
+        await LiveBridgePlatform.showUpdateAvailableNotification(
+          version: latest.version,
+          releaseUrl: latest.htmlUrl,
+        );
+    if (notified) {
+      await LiveBridgePlatform.setUpdateLastNotifiedVersion(latest.version);
+    }
+  }
+
+  Future<void> _syncParserDictionaryWithGithubIfNeeded() async {
+    if (_dictionaryActionInProgress) {
+      return;
+    }
+
+    final _GithubDictionaryInfo? githubDictionary =
+        await _fetchGithubDictionary();
+    if (githubDictionary == null) {
+      return;
+    }
+
+    final String localRaw = (await LiveBridgePlatform.getParserDictionaryJson())
+        .trim();
+    final String? localNormalized = _normalizeDictionaryJson(localRaw);
+    if (localNormalized == githubDictionary.normalized) {
+      return;
+    }
+
+    final bool saved = await LiveBridgePlatform.setCustomParserDictionary(
+      githubDictionary.raw,
+    );
+    if (saved && mounted) {
+      setState(() => _hasCustomParserDictionary = true);
+    }
+  }
+
+  Future<_GithubDictionaryInfo?> _fetchGithubDictionary() async {
+    final HttpClient client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 8);
+    try {
+      final HttpClientRequest request = await client.getUrl(
+        Uri.parse(_dictionaryRawUrl),
+      );
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      request.headers.set(
+        HttpHeaders.userAgentHeader,
+        _currentAppVersion.isNotEmpty
+            ? 'LiveBridge/${_currentAppVersion.trim()}'
+            : 'LiveBridge/dictionary-auto-sync',
+      );
+
+      final HttpClientResponse response = await request.close();
+      if (response.statusCode != HttpStatus.ok) {
+        return null;
+      }
+
+      final String raw = (await utf8.decoder.bind(response).join()).trim();
+      if (raw.isEmpty) {
+        return null;
+      }
+
+      final String? normalized = _normalizeDictionaryJson(raw);
+      if (normalized == null) {
+        return null;
+      }
+
+      return _GithubDictionaryInfo(raw: raw, normalized: normalized);
+    } catch (_) {
+      return null;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  String? _normalizeDictionaryJson(String raw) {
+    final String payload = raw.trim();
+    if (payload.isEmpty) {
+      return null;
+    }
+    try {
+      final dynamic decoded = jsonDecode(payload);
+      if (decoded is! Map) {
+        return null;
+      }
+      return jsonEncode(_normalizeJsonNode(decoded));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  dynamic _normalizeJsonNode(dynamic value) {
+    if (value is Map) {
+      final List<MapEntry<String, dynamic>> entries =
+          value.entries
+              .map(
+                (MapEntry<dynamic, dynamic> entry) => MapEntry<String, dynamic>(
+                  entry.key.toString(),
+                  _normalizeJsonNode(entry.value),
+                ),
+              )
+              .toList()
+            ..sort(
+              (
+                MapEntry<String, dynamic> left,
+                MapEntry<String, dynamic> right,
+              ) => left.key.compareTo(right.key),
+            );
+      return <String, dynamic>{
+        for (final MapEntry<String, dynamic> entry in entries)
+          entry.key: entry.value,
+      };
+    }
+    if (value is List) {
+      return value.map<dynamic>(_normalizeJsonNode).toList(growable: false);
+    }
+    return value;
   }
 
   Future<_GithubReleaseInfo?> _fetchLatestRelease() async {
@@ -1131,7 +1244,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Switch.adaptive(
-                        value: _effectiveConverterEnabled,
+                        value: _masterSwitchValue,
                         onChanged: _canToggleMaster
                             ? _setConverterEnabled
                             : null,
@@ -1187,7 +1300,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
-              _effectiveConverterEnabled
+              _converterEnabled
                   ? s.keepAliveForegroundSubtitle
                   : s.keepAliveForegroundInactiveSubtitle,
               style: TextStyle(
@@ -2044,4 +2157,11 @@ class _GithubReleaseInfo {
 
   final String version;
   final String htmlUrl;
+}
+
+class _GithubDictionaryInfo {
+  const _GithubDictionaryInfo({required this.raw, required this.normalized});
+
+  final String raw;
+  final String normalized;
 }

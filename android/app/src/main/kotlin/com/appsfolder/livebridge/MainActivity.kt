@@ -16,6 +16,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.Settings
@@ -25,12 +26,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import com.appsfolder.livebridge.liveupdate.AppPresentationOverridesCodec
 import com.appsfolder.livebridge.liveupdate.AppPresentationOverridesLoader
 import com.appsfolder.livebridge.liveupdate.ConverterPrefs
 import com.appsfolder.livebridge.liveupdate.DeviceBlocker
 import com.appsfolder.livebridge.liveupdate.DeviceProps
 import com.appsfolder.livebridge.liveupdate.KeepAliveForegroundService
+import com.appsfolder.livebridge.liveupdate.LiveBridgeTileService
 import com.appsfolder.livebridge.liveupdate.LiveParserDictionary
 import com.appsfolder.livebridge.liveupdate.LiveParserDictionaryLoader
 import com.appsfolder.livebridge.liveupdate.LiveUpdateNotifier
@@ -47,6 +50,10 @@ import java.util.concurrent.Executors
 class MainActivity : FlutterActivity() {
     private var notificationPermissionResult: MethodChannel.Result? = null
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -60,6 +67,8 @@ class MainActivity : FlutterActivity() {
         val prefs = ConverterPrefs(applicationContext)
         initializeKeepAliveDefaultIfNeeded(prefs)
         syncKeepAliveForegroundService(prefs)
+        clearDynamicLauncherShortcuts()
+        LiveBridgeTileService.requestStateSync(applicationContext)
     }
 
     override fun onRequestPermissionsResult(
@@ -228,14 +237,7 @@ class MainActivity : FlutterActivity() {
             "getConverterEnabled" -> res.success(prefs.getConverterEnabled())
             "setConverterEnabled" -> {
                 val value = call.argument<Boolean>("value") ?: true
-                prefs.setConverterEnabled(value)
-                if (!value) {
-                    LiveUpdateNotifier.clearRuntimeState()
-                    NotificationManagerCompat.from(applicationContext).cancelAll()
-                } else {
-                    requestNotificationListenerRebind()
-                }
-                syncKeepAliveForegroundService(prefs)
+                applyConverterEnabled(prefs, value)
                 res.success(true)
             }
 
@@ -406,6 +408,22 @@ class MainActivity : FlutterActivity() {
         if (isLikelyChineseDevice()) {
             prefs.setKeepAliveForegroundEnabled(true)
         }
+    }
+
+    private fun applyConverterEnabled(prefs: ConverterPrefs, value: Boolean) {
+        prefs.setConverterEnabled(value)
+        if (!value) {
+            LiveUpdateNotifier.clearRuntimeState()
+            NotificationManagerCompat.from(applicationContext).cancelAll()
+        } else {
+            requestNotificationListenerRebind()
+        }
+        syncKeepAliveForegroundService(prefs)
+        LiveBridgeTileService.requestStateSync(applicationContext)
+    }
+
+    private fun clearDynamicLauncherShortcuts() {
+        runCatching { ShortcutManagerCompat.removeAllDynamicShortcuts(applicationContext) }
     }
 
     private fun getAppVersionName(): String {
