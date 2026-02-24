@@ -545,6 +545,7 @@ object LiveUpdateNotifier {
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setWhen(resolveStableWhen(source, sbn.postTime))
             .setShowWhen(false)
             .setColor(progressColor)
             .setCategory(if (hasProgress) Notification.CATEGORY_PROGRESS else Notification.CATEGORY_STATUS)
@@ -1545,6 +1546,15 @@ object LiveUpdateNotifier {
             context.packageManager.getApplicationLabel(appInfo).toString()
         } catch (_: PackageManager.NameNotFoundException) {
             packageName
+        }
+    }
+
+    private fun resolveStableWhen(source: Notification, fallbackPostTime: Long): Long {
+        val sourceWhen = source.`when`
+        return if (sourceWhen > 0L) {
+            sourceWhen
+        } else {
+            fallbackPostTime
         }
     }
 
