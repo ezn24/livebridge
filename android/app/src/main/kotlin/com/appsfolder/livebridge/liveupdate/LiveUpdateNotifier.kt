@@ -28,6 +28,7 @@ import com.appsfolder.livebridge.R
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 object LiveUpdateNotifier {
     const val CHANNEL_ID = "livebridge_promoted_updates"
@@ -39,6 +40,9 @@ object LiveUpdateNotifier {
     private const val OTP_AUTOCOPY_COPIED_SHOW_DELAY_MS = 1_000L
     private const val OTP_AUTOCOPY_COPIED_SHOW_DURATION_MS = 1_500L
     private const val AOSP_ISLAND_TEXT_LIMIT = 7
+    private const val SMART_ISLAND_ANIMATION_MIN_DELAY_MS = 2_000L
+    private const val SMART_ISLAND_ANIMATION_MAX_DELAY_MS = 3_000L
+    private const val SMART_ISLAND_TOKEN_MAX_LENGTH = 20
 
     private val OTP_CODE_LENGTH = 4..8
     private val progressColor = Color.valueOf(15f / 255f, 118f / 255f, 110f / 255f, 1f).toArgb()
@@ -52,6 +56,7 @@ object LiveUpdateNotifier {
     private val otpSourceStates = mutableMapOf<String, OtpSourceState>()
     private val otpAggregateStates = mutableMapOf<String, OtpAggregateState>()
     private val otpAnimationGenerations = mutableMapOf<String, Long>()
+    private val smartAnimationGenerations = mutableMapOf<String, Long>()
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -92,6 +97,7 @@ object LiveUpdateNotifier {
             otpSourceStates.clear()
             otpAggregateStates.clear()
             otpAnimationGenerations.clear()
+            smartAnimationGenerations.clear()
         }
     }
 
@@ -123,6 +129,7 @@ object LiveUpdateNotifier {
                 .resolve(sbn.packageName.lowercase(Locale.ROOT))
             val source = sbn.notification
             val hasNativeProgress = hasProgress(source)
+            val animatedIslandEnabled = prefs.getAnimatedIslandEnabled()
 
             val otpMatch = if (!hasNativeProgress &&
                 prefs.getOtpDetectionEnabled() &&
@@ -393,6 +400,27 @@ object LiveUpdateNotifier {
                         smartShortTextOverride = smartStatusText,
                         smartRuleId = smartRuleId
                     )
+                    if (animatedIslandEnabled) {
+                        val animatedTokens = buildSmartAnimatedIslandTokens(
+                            ruleId = smartRuleId,
+                            notification = source,
+                            fallbackTitle = sbn.packageName,
+                            primaryStatus = smartStatusText,
+                            compactOrderCode = routeState.compactOrderCode,
+                            parserDictionary = parserDictionary
+                        )
+                        startSmartIslandAnimation(
+                            context = context,
+                            manager = manager,
+                            aggregateKey = smartMatch.aggregateKey,
+                            sbn = sbn,
+                            appPresentationOverride = appPresentationOverride,
+                            progressOverride = smartProgressOverride,
+                            smartRuleId = smartRuleId,
+                            tokens = animatedTokens,
+                            initialToken = smartStatusText
+                        )
+                    }
                     true
                 }
 
@@ -976,7 +1004,13 @@ object LiveUpdateNotifier {
         if (rawNumber.isBlank()) {
             return null
         }
-        return "$rawNumber°"
+        val baseTemperature = "$rawNumber°"
+        val conditionEmoji = extractWeatherConditionEmoji(combinedText, parserDictionary)
+        return if (conditionEmoji != null) {
+            "$baseTemperature · $conditionEmoji"
+        } else {
+            baseTemperature
+        }
     }
 
     private fun isRussianLocale(context: Context): Boolean {
@@ -1130,6 +1164,261 @@ object LiveUpdateNotifier {
                 return@synchronized false
             }
             otpAnimationGenerations[aggregateKey] == generation
+        }
+    }
+
+    private fun buildSmartAnimatedIslandTokens(
+        ruleId: String,
+        notification: Notification,
+        fallbackTitle: String,
+        primaryStatus: String?,
+        compactOrderCode: String?,
+        parserDictionary: LiveParserDictionary
+    ): List<String?> {
+        val combinedText = collectNotificationText(
+            notification = notification,
+            fallbackTitle = fallbackTitle,
+            includeRemoteViewTexts = true
+        )
+        return when (ruleId) {
+            "food" -> {
+                listOf(
+                    primaryStatus,
+                    compactOrderCode ?: extractCompactOrderCode(combinedText)
+                )
+            }
+
+            "navigation" -> {
+                listOf(
+                    primaryStatus,
+                    extractNavigationInstructionToken(combinedText, parserDictionary)
+                )
+            }
+
+            "weather" -> {
+                listOf(
+                    extractWeatherDayToken(combinedText, parserDictionary),
+                    primaryStatus,
+                    extractWeatherConditionToken(combinedText, parserDictionary)
+                )
+            }
+
+            else -> listOf(primaryStatus)
+        }
+    }
+
+    private fun startSmartIslandAnimation(
+        context: Context,
+        manager: NotificationManagerCompat,
+        aggregateKey: String,
+        sbn: StatusBarNotification,
+        appPresentationOverride: AppPresentationOverride,
+        progressOverride: ProgressOverride?,
+        smartRuleId: String,
+        tokens: List<String?>,
+        initialToken: String?
+    ) {
+        if (tokens.isEmpty()) {
+            return
+        }
+        val aospCuttingEnabled = ConverterPrefs(context).getAospCuttingEnabled()
+        val normalizedTokens = tokens.map { normalizeAnimatedToken(it, aospCuttingEnabled) }
+        val normalizedInitial = normalizeAnimatedToken(initialToken, aospCuttingEnabled)
+        val uniqueRenderableTokens = normalizedTokens
+            .mapNotNull { it }
+            .distinctBy { it.lowercase(Locale.ROOT) }
+        if (uniqueRenderableTokens.size < 2) {
+            return
+        }
+        val generation = synchronized(stateLock) {
+            val nextGeneration = (smartAnimationGenerations[aggregateKey] ?: 0L) + 1L
+            smartAnimationGenerations[aggregateKey] = nextGeneration
+            nextGeneration
+        }
+        scheduleSmartAnimationStep(
+            context = context,
+            manager = manager,
+            aggregateKey = aggregateKey,
+            sbn = sbn,
+            appPresentationOverride = appPresentationOverride,
+            progressOverride = progressOverride,
+            smartRuleId = smartRuleId,
+            tokens = normalizedTokens,
+            index = 0,
+            generation = generation,
+            lastShownToken = normalizedInitial,
+            skipBudget = normalizedTokens.size
+        )
+    }
+
+    private fun scheduleSmartAnimationStep(
+        context: Context,
+        manager: NotificationManagerCompat,
+        aggregateKey: String,
+        sbn: StatusBarNotification,
+        appPresentationOverride: AppPresentationOverride,
+        progressOverride: ProgressOverride?,
+        smartRuleId: String,
+        tokens: List<String?>,
+        index: Int,
+        generation: Long,
+        lastShownToken: String?,
+        skipBudget: Int
+    ) {
+        if (tokens.isEmpty()) {
+            return
+        }
+        val safeIndex = ((index % tokens.size) + tokens.size) % tokens.size
+        val token = tokens[safeIndex]
+        if (token.isNullOrBlank() || token.equals(lastShownToken, ignoreCase = true)) {
+            if (skipBudget <= 0) {
+                return
+            }
+            scheduleSmartAnimationStep(
+                context = context,
+                manager = manager,
+                aggregateKey = aggregateKey,
+                sbn = sbn,
+                appPresentationOverride = appPresentationOverride,
+                progressOverride = progressOverride,
+                smartRuleId = smartRuleId,
+                tokens = tokens,
+                index = (safeIndex + 1) % tokens.size,
+                generation = generation,
+                lastShownToken = lastShownToken,
+                skipBudget = skipBudget - 1
+            )
+            return
+        }
+        mainHandler.postDelayed({
+            if (!isSmartAnimationGenerationCurrent(aggregateKey, generation)) {
+                return@postDelayed
+            }
+            if (!ConverterPrefs(context).getAnimatedIslandEnabled()) {
+                synchronized(stateLock) {
+                    if (smartAnimationGenerations[aggregateKey] == generation) {
+                        smartAnimationGenerations.remove(aggregateKey)
+                    }
+                }
+                return@postDelayed
+            }
+            try {
+                val notification = buildMirroredNotification(
+                    context = context,
+                    sbn = sbn,
+                    appPresentationOverride = appPresentationOverride,
+                    progressOverride = progressOverride,
+                    otpOverride = null,
+                    smartShortTextOverride = token,
+                    smartRuleId = smartRuleId,
+                    requestPromoted = true
+                )
+                notifyWithPromotionFallback(
+                    context = context,
+                    manager = manager,
+                    notificationId = mirrorIdForKey(aggregateKey),
+                    promotedNotification = notification,
+                    sbn = sbn,
+                    appPresentationOverride = appPresentationOverride,
+                    progressOverride = progressOverride,
+                    otpOverride = null,
+                    smartShortTextOverride = token,
+                    smartRuleId = smartRuleId
+                )
+            } catch (error: Throwable) {
+                Log.e(TAG, "Failed smart island animation update: $aggregateKey", error)
+            }
+            if (!isSmartAnimationGenerationCurrent(aggregateKey, generation)) {
+                return@postDelayed
+            }
+            val nextIndex = (safeIndex + 1) % tokens.size
+            scheduleSmartAnimationStep(
+                context = context,
+                manager = manager,
+                aggregateKey = aggregateKey,
+                sbn = sbn,
+                appPresentationOverride = appPresentationOverride,
+                progressOverride = progressOverride,
+                smartRuleId = smartRuleId,
+                tokens = tokens,
+                index = nextIndex,
+                generation = generation,
+                lastShownToken = token,
+                skipBudget = tokens.size
+            )
+        }, nextSmartIslandDelayMs())
+    }
+
+    private fun isSmartAnimationGenerationCurrent(aggregateKey: String, generation: Long): Boolean {
+        return synchronized(stateLock) {
+            val state = aggregateStates[aggregateKey] ?: return@synchronized false
+            if (state.activeSbnKeys.isEmpty()) {
+                return@synchronized false
+            }
+            smartAnimationGenerations[aggregateKey] == generation
+        }
+    }
+
+    private fun nextSmartIslandDelayMs(): Long {
+        return Random.nextLong(
+            SMART_ISLAND_ANIMATION_MIN_DELAY_MS,
+            SMART_ISLAND_ANIMATION_MAX_DELAY_MS + 1L
+        )
+    }
+
+    private fun normalizeAnimatedToken(raw: String?, aospCuttingEnabled: Boolean): String? {
+        val normalized = raw.orEmpty()
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(SMART_ISLAND_TOKEN_MAX_LENGTH)
+        if (normalized.isBlank()) {
+            return null
+        }
+        return limitIslandText(normalized, aospCuttingEnabled)
+            .trim()
+            .ifBlank { null }
+    }
+
+    private fun extractNavigationInstructionToken(
+        text: String,
+        parserDictionary: LiveParserDictionary
+    ): String? {
+        val match = parserDictionary.navigationInstructionPattern.find(text) ?: return null
+        return match.value
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .ifBlank { null }
+    }
+
+    private fun extractWeatherDayToken(
+        text: String,
+        parserDictionary: LiveParserDictionary
+    ): String? {
+        val match = parserDictionary.weatherDayPattern.find(text) ?: return null
+        return match.value.trim().ifBlank { null }
+    }
+
+    private fun extractWeatherConditionToken(
+        text: String,
+        parserDictionary: LiveParserDictionary
+    ): String? {
+        val match = parserDictionary.weatherConditionPattern.find(text) ?: return null
+        return match.value.trim().ifBlank { null }
+    }
+
+    private fun extractWeatherConditionEmoji(
+        text: String,
+        parserDictionary: LiveParserDictionary
+    ): String? {
+        return when {
+            parserDictionary.weatherConditionThunderPattern.containsMatchIn(text) -> "\u26c8\ufe0f"
+            parserDictionary.weatherConditionRainPattern.containsMatchIn(text) -> "\ud83c\udf27\ufe0f"
+            parserDictionary.weatherConditionSnowPattern.containsMatchIn(text) -> "\u2744\ufe0f"
+            parserDictionary.weatherConditionFogPattern.containsMatchIn(text) -> "\ud83c\udf2b\ufe0f"
+            parserDictionary.weatherConditionWindPattern.containsMatchIn(text) -> "\ud83c\udf2c\ufe0f"
+            parserDictionary.weatherConditionSunPattern.containsMatchIn(text) -> "\u2600\ufe0f"
+            parserDictionary.weatherConditionCloudPattern.containsMatchIn(text) -> "\u2601\ufe0f"
+            else -> null
         }
     }
 
@@ -1708,9 +1997,11 @@ object LiveUpdateNotifier {
                 state.activeSbnKeys.remove(sbnKey)
                 if (state.activeSbnKeys.isEmpty()) {
                     aggregateStates.remove(smartAggregateKey)
+                    smartAnimationGenerations.remove(smartAggregateKey)
                     idsToCancel.add(mirrorIdForKey(smartAggregateKey))
                 }
             } else {
+                smartAnimationGenerations.remove(smartAggregateKey)
                 idsToCancel.add(mirrorIdForKey(smartAggregateKey))
             }
         }

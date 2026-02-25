@@ -116,6 +116,12 @@ class AppStrings {
   String updateAvailableBanner(String version) => isRu
       ? 'Доступно обновление${version.isNotEmpty ? ': $version' : ''}'
       : 'Update available${version.isNotEmpty ? ': $version' : ''}';
+  String get experimentalTitle => isRu ? 'Экспериментальное' : 'Experimental';
+  String get animatedIslandTitle =>
+      isRu ? 'Анимированный остров' : 'Animated island';
+  String get animatedIslandSubtitle => isRu
+      ? 'Меняет короткий текст острова каждые 2-3 секунды для smart-уведомлений (может работать нестабильно).'
+      : 'Rotates compact island text every 2-3 seconds for smart notifications (may be unstable).';
   String get aospCuttingTitle => isRu ? 'Обрезка AOSP' : 'AOSP cutting';
   String get aospCuttingSubtitle => isRu
       ? 'Обрезать информацию в острове до 7 символов для красивого отображения в AOSP-прошивках.'

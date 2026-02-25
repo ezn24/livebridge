@@ -22,6 +22,16 @@ internal data class LiveParserDictionary(
     val weatherPackageHints: Set<String>,
     val weatherContextPattern: Regex,
     val weatherTemperaturePattern: Regex,
+    val weatherDayPattern: Regex,
+    val weatherConditionPattern: Regex,
+    val weatherConditionThunderPattern: Regex,
+    val weatherConditionRainPattern: Regex,
+    val weatherConditionSnowPattern: Regex,
+    val weatherConditionFogPattern: Regex,
+    val weatherConditionWindPattern: Regex,
+    val weatherConditionSunPattern: Regex,
+    val weatherConditionCloudPattern: Regex,
+    val navigationInstructionPattern: Regex,
     val otpCodePatterns: List<Regex>,
     val orderContextHints: Set<String>,
     val entityTokenPatterns: List<Regex>,
@@ -51,6 +61,16 @@ internal data class LiveParserDictionary(
                 weatherPackageHints = emptySet(),
                 weatherContextPattern = emptyRegex,
                 weatherTemperaturePattern = emptyRegex,
+                weatherDayPattern = emptyRegex,
+                weatherConditionPattern = emptyRegex,
+                weatherConditionThunderPattern = emptyRegex,
+                weatherConditionRainPattern = emptyRegex,
+                weatherConditionSnowPattern = emptyRegex,
+                weatherConditionFogPattern = emptyRegex,
+                weatherConditionWindPattern = emptyRegex,
+                weatherConditionSunPattern = emptyRegex,
+                weatherConditionCloudPattern = emptyRegex,
+                navigationInstructionPattern = emptyRegex,
                 otpCodePatterns = emptyList(),
                 orderContextHints = emptySet(),
                 entityTokenPatterns = emptyList(),
@@ -122,6 +142,46 @@ internal data class LiveParserDictionary(
             val weatherTemperaturePattern = parsedWeatherTemperaturePattern
                 ?.takeIf { it.containsMatchIn("1°") && it.containsMatchIn("-5°") }
                 ?: defaults.weatherTemperaturePattern
+            val weatherDayPattern = parseRegex(
+                root.optString("weather_day_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherDayPattern
+            val weatherConditionPattern = parseRegex(
+                root.optString("weather_condition_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherConditionPattern
+            val weatherConditionThunderPattern = parseRegex(
+                root.optString("weather_condition_thunder_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherConditionThunderPattern
+            val weatherConditionRainPattern = parseRegex(
+                root.optString("weather_condition_rain_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherConditionRainPattern
+            val weatherConditionSnowPattern = parseRegex(
+                root.optString("weather_condition_snow_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherConditionSnowPattern
+            val weatherConditionFogPattern = parseRegex(
+                root.optString("weather_condition_fog_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherConditionFogPattern
+            val weatherConditionWindPattern = parseRegex(
+                root.optString("weather_condition_wind_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherConditionWindPattern
+            val weatherConditionSunPattern = parseRegex(
+                root.optString("weather_condition_sun_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherConditionSunPattern
+            val weatherConditionCloudPattern = parseRegex(
+                root.optString("weather_condition_cloud_pattern"),
+                ignoreCase = true
+            ) ?: defaults.weatherConditionCloudPattern
+            val navigationInstructionPattern = parseRegex(
+                root.optString("navigation_instruction_pattern"),
+                ignoreCase = true
+            ) ?: defaults.navigationInstructionPattern
 
             val otpCodePatterns =
                 parseRegexList(root.optJSONArray("otp_code_patterns"), ignoreCase = false).ifEmpty {
@@ -151,6 +211,16 @@ internal data class LiveParserDictionary(
                 weatherPackageHints = weatherPackageHints,
                 weatherContextPattern = weatherContextPattern,
                 weatherTemperaturePattern = weatherTemperaturePattern,
+                weatherDayPattern = weatherDayPattern,
+                weatherConditionPattern = weatherConditionPattern,
+                weatherConditionThunderPattern = weatherConditionThunderPattern,
+                weatherConditionRainPattern = weatherConditionRainPattern,
+                weatherConditionSnowPattern = weatherConditionSnowPattern,
+                weatherConditionFogPattern = weatherConditionFogPattern,
+                weatherConditionWindPattern = weatherConditionWindPattern,
+                weatherConditionSunPattern = weatherConditionSunPattern,
+                weatherConditionCloudPattern = weatherConditionCloudPattern,
+                navigationInstructionPattern = navigationInstructionPattern,
                 otpCodePatterns = otpCodePatterns,
                 orderContextHints = orderContextHints,
                 entityTokenPatterns = entityTokenPatterns,

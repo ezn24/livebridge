@@ -152,6 +152,7 @@
   ],
   "navigation_package_markers": ["navigation", "navigator", ".maps"],
   "navigation_distance_pattern": "(?<!\\d)\\d{1,4}(?:[\\s.,]\\d{1,2})?\\s*(?:км|km|м|m|mi|ft|миль|фут)\\b",
+  "navigation_instruction_pattern": "(поверните[^\\n,.;:!]*|сверните[^\\n,.;:!]*|держитесь[^\\n,.;:!]*|развернитесь|turn\\s+(?:left|right)|keep\\s+(?:left|right)|take\\s+exit|u-?turn|roundabout)",
   "otp_strong_triggers": [
     "otp",
     "one-time password",
@@ -198,6 +199,15 @@
   ],
   "weather_context_pattern": "(погод|weather|температур|temperature|ощущаетс|feels like|влажност|humidity|ветер|wind|осадк|precip|давлен|pressure|прогноз|forecast|uv|aqi)",
   "weather_temperature_pattern": "(?<!\\d)([+\\-−]?\\d{1,3})\\s*(?:°\\s*(?:c|f|с|ф)?|℃|℉)",
+  "weather_day_pattern": "(сегодня|завтра|утром|днем|вечером|ночью|today|tomorrow|morning|afternoon|evening|night)",
+  "weather_condition_pattern": "(ясно|пасмурно|облачно|дожд|снег|туман|ветрено|солнечно|sunny|cloudy|overcast|rain|snow|fog|windy|clear)",
+  "weather_condition_thunder_pattern": "(гроз|thunder|storm)",
+  "weather_condition_rain_pattern": "(дожд|rain|shower)",
+  "weather_condition_snow_pattern": "(снег|snow|sleet|blizzard)",
+  "weather_condition_fog_pattern": "(туман|mist|fog|haze)",
+  "weather_condition_wind_pattern": "(ветер|ветрено|wind|windy|gust)",
+  "weather_condition_sun_pattern": "(солнечно|ясно|sunny|clear)",
+  "weather_condition_cloud_pattern": "(пасмурно|облачно|cloud|overcast)",
   "otp_code_patterns": [
     "(?<!\\d)(\\d{4,8})(?!\\d)",
     "(?<!\\d)(\\d(?:[\\s-]?\\d){3,7})(?!\\d)"

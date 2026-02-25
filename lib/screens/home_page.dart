@@ -47,6 +47,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool _converterEnabled = true;
   bool _keepAliveForegroundEnabled = false;
   bool _aospCuttingEnabled = false;
+  bool _animatedIslandEnabled = false;
   bool _onlyWithProgress = true;
   bool _textProgressEnabled = true;
   bool _smartDetectionEnabled = true;
@@ -182,6 +183,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           await LiveBridgePlatform.getKeepAliveForegroundEnabled();
       final bool aospCuttingEnabled =
           await LiveBridgePlatform.getAospCuttingEnabled();
+      final bool animatedIslandEnabled =
+          await LiveBridgePlatform.getAnimatedIslandEnabled();
       final bool onlyWithProgress =
           await LiveBridgePlatform.getOnlyWithProgress();
       final bool textProgressEnabled =
@@ -267,6 +270,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         _converterEnabled = converterEnabled;
         _keepAliveForegroundEnabled = keepAliveForegroundEnabled;
         _aospCuttingEnabled = aospCuttingEnabled;
+        _animatedIslandEnabled = animatedIslandEnabled;
         _onlyWithProgress = onlyWithProgress;
         _textProgressEnabled = textProgressEnabled;
         _smartDetectionEnabled = smartDetectionEnabled;
@@ -360,6 +364,12 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     HapticFeedback.selectionClick();
     setState(() => _aospCuttingEnabled = value);
     await LiveBridgePlatform.setAospCuttingEnabled(value);
+  }
+
+  Future<void> _setAnimatedIsland(bool value) async {
+    HapticFeedback.selectionClick();
+    setState(() => _animatedIslandEnabled = value);
+    await LiveBridgePlatform.setAnimatedIslandEnabled(value);
   }
 
   Future<void> _setUpdateChecksEnabled(bool value) async {
@@ -1048,6 +1058,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
       'rules',
       'smart',
       'otp',
+      'experimental',
       'settings',
     };
     return raw
@@ -1136,6 +1147,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                     _buildSmartCard(s),
                     const SizedBox(height: 24),
                     _buildOtpCard(s),
+                    const SizedBox(height: 24),
+                    _buildExperimentalCard(s),
                     const SizedBox(height: 24),
                     _buildSettingsCard(s),
                   ],
@@ -1491,6 +1504,37 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExperimentalCard(AppStrings s) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return _sectionPanel(
+      sectionId: 'experimental',
+      title: s.experimentalTitle,
+      icon: Icons.science_rounded,
+      child: Column(
+        children: <Widget>[
+          SwitchListTile.adaptive(
+            value: _animatedIslandEnabled,
+            onChanged: _setAnimatedIsland,
+            title: Text(
+              s.animatedIslandTitle,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              s.animatedIslandSubtitle,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: colorScheme.primary,
           ),
         ],
       ),

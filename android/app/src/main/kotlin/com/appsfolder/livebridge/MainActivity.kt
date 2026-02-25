@@ -300,6 +300,12 @@ class MainActivity : FlutterActivity() {
                 res.success(true)
             }
 
+            "getAnimatedIslandEnabled" -> res.success(prefs.getAnimatedIslandEnabled())
+            "setAnimatedIslandEnabled" -> {
+                prefs.setAnimatedIslandEnabled(call.argument<Boolean>("value") ?: false)
+                res.success(true)
+            }
+
             "getSmartStatusDetectionEnabled" -> res.success(prefs.getSmartStatusDetectionEnabled())
             "setSmartStatusDetectionEnabled" -> {
                 prefs.setSmartStatusDetectionEnabled(call.argument<Boolean>("value") ?: true)
