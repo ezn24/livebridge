@@ -127,6 +127,14 @@ class ConverterPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_ANIMATED_ISLAND_ENABLED, value).apply()
     }
 
+    fun getHyperBridgeEnabled(): Boolean {
+        return prefs.getBoolean(KEY_HYPERBRIDGE_ENABLED, false)
+    }
+
+    fun setHyperBridgeEnabled(value: Boolean) {
+        prefs.edit().putBoolean(KEY_HYPERBRIDGE_ENABLED, value).apply()
+    }
+
     fun getSmartStatusDetectionEnabled(): Boolean {
         return prefs.getBoolean(KEY_SMART_STATUS_ENABLED, true)
     }
@@ -329,6 +337,7 @@ class ConverterPrefs(context: Context) {
         private const val KEY_UPDATE_LAST_NOTIFIED_VERSION = "update_last_notified_version"
         private const val KEY_AOSP_CUTTING_ENABLED = "aosp_cutting_enabled"
         private const val KEY_ANIMATED_ISLAND_ENABLED = "animated_island_enabled"
+        private const val KEY_HYPERBRIDGE_ENABLED = "hyperbridge_enabled"
         private const val KEY_SMART_STATUS_ENABLED = "smart_status_enabled"
         private const val KEY_SMART_NAVIGATION_ENABLED = "smart_navigation_enabled"
         private const val KEY_SMART_WEATHER_ENABLED = "smart_weather_enabled"

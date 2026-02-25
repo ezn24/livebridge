@@ -122,6 +122,10 @@ class AppStrings {
   String get animatedIslandSubtitle => isRu
       ? 'Меняет короткий текст острова каждые 2-3 секунды для smart-уведомлений (может работать нестабильно).'
       : 'Rotates compact island text every 2-3 seconds for smart notifications (may be unstable).';
+  String get hyperBridgeTitle => 'Xiaomi Hyper Island';
+  String get hyperBridgeSubtitle => isRu
+      ? 'Для Xiaomi Hyper OS 3.1 Глобальной: добавляет HyperOS Focus-параметры для нативного острова.'
+      : 'For Xiaomi Hyper OS 3.1 Global: injects HyperOS Focus parameters for native island behavior.';
   String get aospCuttingTitle => isRu ? 'Обрезка AOSP' : 'AOSP cutting';
   String get aospCuttingSubtitle => isRu
       ? 'Обрезать информацию в острове до 7 символов для красивого отображения в AOSP-прошивках.'

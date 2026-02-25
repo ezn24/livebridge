@@ -306,6 +306,12 @@ class MainActivity : FlutterActivity() {
                 res.success(true)
             }
 
+            "getHyperBridgeEnabled" -> res.success(prefs.getHyperBridgeEnabled())
+            "setHyperBridgeEnabled" -> {
+                prefs.setHyperBridgeEnabled(call.argument<Boolean>("value") ?: false)
+                res.success(true)
+            }
+
             "getSmartStatusDetectionEnabled" -> res.success(prefs.getSmartStatusDetectionEnabled())
             "setSmartStatusDetectionEnabled" -> {
                 prefs.setSmartStatusDetectionEnabled(call.argument<Boolean>("value") ?: true)

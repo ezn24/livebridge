@@ -16,6 +16,7 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.drawable.Drawable
+import android.icu.text.BreakIterator
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -514,7 +515,8 @@ object LiveUpdateNotifier {
         requestPromoted: Boolean,
         otpShortTextOverride: String? = null
     ): Notification {
-        val parserDictionary = LiveParserDictionaryLoader.get(context, ConverterPrefs(context))
+        val runtimePrefs = ConverterPrefs(context)
+        val parserDictionary = LiveParserDictionaryLoader.get(context, runtimePrefs)
         val source = sbn.notification
         val sourceSmallIcon = resolveSourceSmallIcon(context, sbn)
         val appSmallIcon = resolveAppSmallIcon(context, sbn.packageName)
@@ -551,7 +553,8 @@ object LiveUpdateNotifier {
         } else {
             text
         }
-        val aospCuttingEnabled = ConverterPrefs(context).getAospCuttingEnabled()
+        val aospCuttingEnabled = runtimePrefs.getAospCuttingEnabled()
+        val hyperBridgeEnabled = runtimePrefs.getHyperBridgeEnabled()
 
         val progressMax = progressOverride?.max ?: source.extras.getInt(Notification.EXTRA_PROGRESS_MAX, 0)
         val progressValue = progressOverride?.value ?: source.extras.getInt(Notification.EXTRA_PROGRESS, 0)
@@ -561,6 +564,15 @@ object LiveUpdateNotifier {
             source.extras.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE, false)
         }
         val hasProgress = progressOverride != null || hasProgress(source)
+        val determinateProgressPercent = if (hasProgress && !indeterminate && progressMax > 0) {
+            val safeMax = progressMax.coerceAtLeast(1)
+            val safeProgress = progressValue.coerceIn(0, safeMax)
+            ((safeProgress.toFloat() / safeMax.toFloat()) * 100f)
+                .roundToInt()
+                .coerceIn(0, 100)
+        } else {
+            null
+        }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(displayTitle)
@@ -612,9 +624,7 @@ object LiveUpdateNotifier {
             } else {
                 val safeMax = progressMax.coerceAtLeast(1)
                 val safeProgress = progressValue.coerceIn(0, safeMax)
-                val percent = ((safeProgress.toFloat() / safeMax.toFloat()) * 100f)
-                    .roundToInt()
-                    .coerceIn(0, 100)
+                val percent = determinateProgressPercent ?: 0
 
                 builder.setProgress(safeMax, safeProgress, false)
                 builder.setStyle(
@@ -637,6 +647,27 @@ object LiveUpdateNotifier {
         if (smartShortTextOverride != null && !hasProgress) {
             builder.setContentText(smartShortTextOverride)
             builder.setShortCriticalText(limitIslandText(smartShortTextOverride, aospCuttingEnabled))
+        }
+
+        if (hyperBridgeEnabled) {
+            val hyperTicker = when {
+                otpOverride != null -> otpShortTextOverride ?: otpOverride.code
+                !smartShortTextOverride.isNullOrBlank() -> smartShortTextOverride
+                determinateProgressPercent != null -> "$determinateProgressPercent%"
+                else -> displayTitle
+            }
+            HyperBridgeAdapter.apply(
+                context = context,
+                builder = builder,
+                sourcePackageName = sbn.packageName,
+                appName = appName,
+                title = displayTitle,
+                content = displayText,
+                ticker = hyperTicker,
+                progressPercent = determinateProgressPercent,
+                largeIcon = preferredLargeIcon,
+                sourceActions = source.actions
+            )
         }
 
         return builder.build()
@@ -1370,11 +1401,11 @@ object LiveUpdateNotifier {
         val normalized = raw.orEmpty()
             .replace(Regex("\\s+"), " ")
             .trim()
-            .take(SMART_ISLAND_TOKEN_MAX_LENGTH)
-        if (normalized.isBlank()) {
+        val normalizedLengthSafe = safeTakeByGraphemes(normalized, SMART_ISLAND_TOKEN_MAX_LENGTH)
+        if (normalizedLengthSafe.isBlank()) {
             return null
         }
-        return limitIslandText(normalized, aospCuttingEnabled)
+        return limitIslandText(normalizedLengthSafe, aospCuttingEnabled)
             .trim()
             .ifBlank { null }
     }
@@ -1978,7 +2009,28 @@ object LiveUpdateNotifier {
         if (!enabled) {
             return normalized
         }
-        return normalized.take(AOSP_ISLAND_TEXT_LIMIT)
+        return safeTakeByGraphemes(normalized, AOSP_ISLAND_TEXT_LIMIT)
+    }
+
+    private fun safeTakeByGraphemes(value: String, maxGraphemes: Int): String {
+        if (maxGraphemes <= 0 || value.isEmpty()) {
+            return ""
+        }
+
+        val iterator = BreakIterator.getCharacterInstance(Locale.ROOT)
+        iterator.setText(value)
+
+        var endIndex = 0
+        var consumed = 0
+        while (consumed < maxGraphemes) {
+            val nextBoundary = iterator.next()
+            if (nextBoundary == BreakIterator.DONE) {
+                break
+            }
+            endIndex = nextBoundary
+            consumed += 1
+        }
+        return if (endIndex > 0) value.substring(0, endIndex) else ""
     }
 
     private fun clearAggregateTrackingForSbnKeyLocked(sbnKey: String): List<Int> {

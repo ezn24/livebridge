@@ -48,6 +48,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool _keepAliveForegroundEnabled = false;
   bool _aospCuttingEnabled = false;
   bool _animatedIslandEnabled = false;
+  bool _hyperBridgeEnabled = false;
   bool _onlyWithProgress = true;
   bool _textProgressEnabled = true;
   bool _smartDetectionEnabled = true;
@@ -185,6 +186,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           await LiveBridgePlatform.getAospCuttingEnabled();
       final bool animatedIslandEnabled =
           await LiveBridgePlatform.getAnimatedIslandEnabled();
+      final bool hyperBridgeEnabled =
+          await LiveBridgePlatform.getHyperBridgeEnabled();
       final bool onlyWithProgress =
           await LiveBridgePlatform.getOnlyWithProgress();
       final bool textProgressEnabled =
@@ -271,6 +274,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         _keepAliveForegroundEnabled = keepAliveForegroundEnabled;
         _aospCuttingEnabled = aospCuttingEnabled;
         _animatedIslandEnabled = animatedIslandEnabled;
+        _hyperBridgeEnabled = hyperBridgeEnabled;
         _onlyWithProgress = onlyWithProgress;
         _textProgressEnabled = textProgressEnabled;
         _smartDetectionEnabled = smartDetectionEnabled;
@@ -370,6 +374,12 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     HapticFeedback.selectionClick();
     setState(() => _animatedIslandEnabled = value);
     await LiveBridgePlatform.setAnimatedIslandEnabled(value);
+  }
+
+  Future<void> _setHyperBridge(bool value) async {
+    HapticFeedback.selectionClick();
+    setState(() => _hyperBridgeEnabled = value);
+    await LiveBridgePlatform.setHyperBridgeEnabled(value);
   }
 
   Future<void> _setUpdateChecksEnabled(bool value) async {
@@ -1528,6 +1538,24 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
             ),
             subtitle: Text(
               s.animatedIslandSubtitle,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: colorScheme.primary,
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile.adaptive(
+            value: _hyperBridgeEnabled,
+            onChanged: _setHyperBridge,
+            title: Text(
+              s.hyperBridgeTitle,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              s.hyperBridgeSubtitle,
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: 13,

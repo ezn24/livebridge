@@ -103,6 +103,10 @@ class LiveBridgePlatform {
       _askBool('getAnimatedIslandEnabled');
   static Future<bool> setAnimatedIslandEnabled(bool value) =>
       _askBool('setAnimatedIslandEnabled', {'value': value});
+  static Future<bool> getHyperBridgeEnabled() =>
+      _askBool('getHyperBridgeEnabled');
+  static Future<bool> setHyperBridgeEnabled(bool value) =>
+      _askBool('setHyperBridgeEnabled', {'value': value});
   static Future<bool> getSmartStatusDetectionEnabled() =>
       _askBool('getSmartStatusDetectionEnabled');
   static Future<bool> setSmartStatusDetectionEnabled(bool value) =>
