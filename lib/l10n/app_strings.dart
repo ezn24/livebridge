@@ -256,8 +256,8 @@ class AppStrings {
   String get smartMediaPlaybackTitle =>
       isRu ? 'Media Playback' : 'Media Playback';
   String get smartMediaPlaybackSubtitle => isRu
-      ? 'Преобразует уведомления медиаплеера в Live. Доступно только на AOSP.'
-      : 'Converts media playback notifications into Live. Available only on AOSP.';
+      ? 'Преобразует уведомления медиаплеера в Live. На некоторых OEM может дублировать нативный плеер.'
+      : 'Converts media playback notifications into Live. On some OEMs this may duplicate native media UI.';
   String get smartNavigationTitle =>
       isRu ? 'Навигация (карты)' : 'Navigation (maps)';
   String get smartNavigationSubtitle => isRu

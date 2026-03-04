@@ -69,7 +69,6 @@ object LiveUpdateNotifier {
     private val otpAnimationGenerations = mutableMapOf<String, Long>()
     private val smartAnimationGenerations = mutableMapOf<String, Long>()
     private val smartAnimationStates = mutableMapOf<String, SmartAnimationState>()
-    private val isAospLikeDevice by lazy { detectAospLikeDevice() }
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -179,7 +178,7 @@ object LiveUpdateNotifier {
                 return true
             }
             val parserDictionary = LiveParserDictionaryLoader.get(context, prefs)
-            val mediaPlaybackSmartEnabled = prefs.getSmartMediaPlaybackEnabled() && isAospLikeDevice
+            val mediaPlaybackSmartEnabled = prefs.getSmartMediaPlaybackEnabled()
             if (!passesBaseFilters(prefs, sbn, parserDictionary, mediaPlaybackSmartEnabled)) {
                 val staleAggregateIds = synchronized(stateLock) {
                     clearAggregateTrackingForSbnKeyLocked(sbn.key)
@@ -2891,38 +2890,6 @@ object LiveUpdateNotifier {
         } else {
             String.format(Locale.ROOT, "%d:%02d", minutes, seconds)
         }
-    }
-
-    private fun detectAospLikeDevice(): Boolean {
-        val manufacturer = Build.MANUFACTURER.orEmpty()
-        val brand = Build.BRAND.orEmpty()
-        val marketName = DeviceProps.marketName()
-        val model = Build.MODEL.orEmpty()
-        val product = Build.PRODUCT.orEmpty()
-        val fingerprint = Build.FINGERPRINT.orEmpty()
-        val display = Build.DISPLAY.orEmpty()
-        val customRomMarkers = listOf(
-            "lineage",
-            "evolution",
-            "evox",
-            "crdroid",
-            "pixelos",
-            "arrowos",
-            "risingos",
-            "yaap",
-            "derpfest",
-            "aosp"
-        )
-
-        val pixelProbe = "$manufacturer $brand $marketName $model".lowercase(Locale.ROOT)
-        val all = "$manufacturer $brand $marketName $model $product $fingerprint $display"
-            .lowercase(Locale.ROOT)
-        val isPixel = pixelProbe.contains("google") || pixelProbe.contains("pixel")
-
-        return isPixel ||
-                all.contains("nothing") ||
-                all.contains("motorola") ||
-                customRomMarkers.any(all::contains)
     }
 
     private fun resolveAppName(context: Context, packageName: String): String {

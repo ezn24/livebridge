@@ -2179,26 +2179,24 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
       icon: Icons.auto_awesome_rounded,
       child: Column(
         children: <Widget>[
-          if (_isAospDevice) ...<Widget>[
-            SwitchListTile.adaptive(
-              value: _smartMediaPlaybackEnabled,
-              onChanged: _setSmartMediaPlayback,
-              title: Text(
-                s.smartMediaPlaybackTitle,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                s.smartMediaPlaybackSubtitle,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 13,
-                ),
-              ),
-              contentPadding: EdgeInsets.zero,
-              activeThumbColor: Theme.of(context).colorScheme.primary,
+          SwitchListTile.adaptive(
+            value: _smartMediaPlaybackEnabled,
+            onChanged: _setSmartMediaPlayback,
+            title: Text(
+              s.smartMediaPlaybackTitle,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
-          ],
+            subtitle: Text(
+              s.smartMediaPlaybackSubtitle,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 8),
           SwitchListTile.adaptive(
             value: _smartDetectionEnabled,
             onChanged: _setSmartDetection,
