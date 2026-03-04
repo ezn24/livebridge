@@ -46,6 +46,9 @@ object LiveUpdateNotifier {
     private const val SMART_ISLAND_TOKEN_MAX_LENGTH = 20
 
     private val OTP_CODE_LENGTH = 4..8
+    private val transparentActionIcon by lazy {
+        IconCompat.createWithBitmap(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+    }
     private val progressColor = Color.valueOf(15f / 255f, 118f / 255f, 110f / 255f, 1f).toArgb()
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -58,6 +61,7 @@ object LiveUpdateNotifier {
     private val otpAggregateStates = mutableMapOf<String, OtpAggregateState>()
     private val otpAnimationGenerations = mutableMapOf<String, Long>()
     private val smartAnimationGenerations = mutableMapOf<String, Long>()
+    private val smartAnimationStates = mutableMapOf<String, SmartAnimationState>()
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -99,6 +103,7 @@ object LiveUpdateNotifier {
             otpAggregateStates.clear()
             otpAnimationGenerations.clear()
             smartAnimationGenerations.clear()
+            smartAnimationStates.clear()
         }
     }
 
@@ -148,6 +153,8 @@ object LiveUpdateNotifier {
                     parserDictionary = parserDictionary,
                     navigationEnabled = prefs.getSmartNavigationEnabled(),
                     weatherEnabled = prefs.getSmartWeatherEnabled(),
+                    externalDevicesEnabled = prefs.getSmartExternalDevicesEnabled(),
+                    vpnEnabled = prefs.getSmartVpnEnabled(),
                     hasNativeProgress = hasNativeProgress
                 )
             } else {
@@ -165,6 +172,24 @@ object LiveUpdateNotifier {
                 )
             } else {
                 null
+            }
+
+            val shouldSuppressNonTrafficVpn = otpMatch == null &&
+                    smartMatch == null &&
+                    textProgressMatch == null &&
+                    prefs.getSmartVpnEnabled() &&
+                    shouldSuppressVpnWithoutTraffic(
+                        packageName = sbn.packageName,
+                        source = source,
+                        parserDictionary = parserDictionary
+                    )
+            if (shouldSuppressNonTrafficVpn) {
+                val staleAggregateIds = synchronized(stateLock) {
+                    clearAggregateTrackingForSbnKeyLocked(sbn.key)
+                }
+                staleAggregateIds.forEach(manager::cancel)
+                manager.cancel(mirrorIdForKey(sbn.key))
+                return false
             }
 
             if (!hasNativeProgress &&
@@ -342,38 +367,51 @@ object LiveUpdateNotifier {
                     }
                     routeState.staleAggregateIds.forEach(manager::cancel)
                     val smartRuleId = smartRuleIdFromAggregateKey(smartMatch.aggregateKey)
-                    val smartStatusText =
-                        if (smartRuleId == "navigation") {
-                            extractNavigationDistanceText(
-                                notification = source,
-                                fallbackTitle = sbn.packageName,
-                                parserDictionary = parserDictionary
-                            ) ?: smartShortStatusText(
-                                context = context,
-                                ruleId = smartRuleId,
-                                stageValue = routeState.stageValue,
-                                parserDictionary = parserDictionary
-                            )
-                        } else if (smartRuleId == "weather") {
-                            extractWeatherTemperatureText(
-                                notification = source,
-                                fallbackTitle = sbn.packageName,
-                                parserDictionary = parserDictionary
-                            ) ?: smartShortStatusText(
-                                context = context,
-                                ruleId = smartRuleId,
-                                stageValue = routeState.stageValue,
-                                parserDictionary = parserDictionary
-                            )
-                        } else {
-                            smartShortStatusText(
-                                context = context,
-                                ruleId = smartRuleId,
-                                stageValue = routeState.stageValue,
-                                parserDictionary = parserDictionary
-                            )
-                        } ?: routeState.compactOrderCode
-                    val smartProgressOverride = if (smartRuleId == "weather") {
+                    val defaultSmartStatus = smartShortStatusText(
+                        context = context,
+                        ruleId = smartRuleId,
+                        stageValue = routeState.stageValue,
+                        parserDictionary = parserDictionary
+                    )
+                    val vpnTraffic = if (smartRuleId == "vpn") {
+                        extractVpnTrafficSpeeds(
+                            notification = source,
+                            fallbackTitle = sbn.packageName,
+                            parserDictionary = parserDictionary
+                        )
+                    } else {
+                        null
+                    }
+                    val smartStatusText = when (smartRuleId) {
+                        "navigation" -> extractNavigationDistanceText(
+                            notification = source,
+                            fallbackTitle = sbn.packageName,
+                            parserDictionary = parserDictionary
+                        ) ?: defaultSmartStatus
+
+                        "weather" -> extractWeatherTemperatureText(
+                            notification = source,
+                            fallbackTitle = sbn.packageName,
+                            parserDictionary = parserDictionary
+                        ) ?: defaultSmartStatus
+
+                        "external_device" -> extractExternalDeviceStatusText(
+                            context = context,
+                            notification = source,
+                            fallbackTitle = sbn.packageName,
+                            stageValue = routeState.stageValue,
+                            parserDictionary = parserDictionary
+                        ) ?: defaultSmartStatus
+
+                        "vpn" -> formatDominantVpnTrafficText(vpnTraffic) ?: defaultSmartStatus
+
+                        else -> defaultSmartStatus
+                    } ?: routeState.compactOrderCode
+                    val smartProgressOverride = if (
+                        smartRuleId == "weather" ||
+                        smartRuleId == "external_device" ||
+                        smartRuleId == "vpn"
+                    ) {
                         null
                     } else {
                         ProgressOverride(routeState.stageValue, routeState.stageMax)
@@ -607,7 +645,6 @@ object LiveUpdateNotifier {
         source.deleteIntent?.let(builder::setDeleteIntent)
 
         copySourceActions(
-            context = context,
             source = source,
             builder = builder,
             maxActions = if (otpOverride != null) MAX_MIRRORED_ACTIONS - 1 else MAX_MIRRORED_ACTIONS
@@ -710,15 +747,29 @@ object LiveUpdateNotifier {
         parserDictionary: LiveParserDictionary,
         navigationEnabled: Boolean,
         weatherEnabled: Boolean,
+        externalDevicesEnabled: Boolean,
+        vpnEnabled: Boolean,
         hasNativeProgress: Boolean
     ): SmartStageMatch? {
         val isNavigationPackage = isLikelyNavigationPackage(packageName, parserDictionary)
         val packageLower = packageName.lowercase(Locale.ROOT)
         val isWeatherPackage = isLikelyWeatherPackage(packageLower, parserDictionary)
+        val isExternalDevicePackage = isLikelySmartRulePackage(
+            packageNameLower = packageLower,
+            ruleId = "external_device",
+            parserDictionary = parserDictionary
+        )
+        val isVpnPackage = isLikelyVpnPackage(
+            packageNameLower = packageLower,
+            parserDictionary = parserDictionary
+        )
         val combinedText = collectNotificationText(
             notification = source,
             fallbackTitle = packageName,
-            includeRemoteViewTexts = isNavigationPackage || isWeatherPackage
+            includeRemoteViewTexts = isNavigationPackage ||
+                    isWeatherPackage ||
+                    isExternalDevicePackage ||
+                    isVpnPackage
         ).lowercase(Locale.ROOT)
 
         for (rule in parserDictionary.smartRules) {
@@ -731,10 +782,27 @@ object LiveUpdateNotifier {
             if (rule.id == "weather" && !weatherEnabled) {
                 continue
             }
+            if (rule.id == "external_device" && !externalDevicesEnabled) {
+                continue
+            }
+            if (rule.id == "vpn" && !vpnEnabled) {
+                continue
+            }
+            if (rule.id == "vpn" && !hasVpnSpeedPattern(combinedText, parserDictionary)) {
+                continue
+            }
             if (!rule.isRelevant(packageLower, combinedText)) {
                 continue
             }
             if (rule.isExcluded(combinedText)) {
+                continue
+            }
+            if (rule.id == "external_device" &&
+                extractConnectedDeviceName(
+                    text = combinedText,
+                    parserDictionary = parserDictionary
+                ).isNullOrBlank()
+            ) {
                 continue
             }
 
@@ -742,6 +810,8 @@ object LiveUpdateNotifier {
             val entityToken = when (rule.id) {
                 "navigation" -> "route"
                 "weather" -> "weather"
+                "external_device" -> "device"
+                "vpn" -> "vpn"
                 else -> extractEntityToken(combinedText, parserDictionary)
             }
             val compactOrderCode = if (rule.id == "food") {
@@ -755,12 +825,23 @@ object LiveUpdateNotifier {
                 stageValue = matchedSignal.stage,
                 maxStage = rule.maxStage,
                 compactOrderCode = compactOrderCode,
-                keepHighestStage = rule.id != "navigation"
+                keepHighestStage = rule.id != "navigation" &&
+                        rule.id != "weather" &&
+                        rule.id != "external_device" &&
+                        rule.id != "vpn"
             )
         }
 
         if (weatherEnabled) {
             detectWeatherSmartStage(
+                packageNameLower = packageLower,
+                source = source,
+                parserDictionary = parserDictionary
+            )?.let { return it }
+        }
+
+        if (vpnEnabled) {
+            detectVpnTrafficSmartStage(
                 packageNameLower = packageLower,
                 source = source,
                 parserDictionary = parserDictionary
@@ -796,6 +877,38 @@ object LiveUpdateNotifier {
 
         return SmartStageMatch(
             aggregateKey = "$packageNameLower:weather:weather",
+            stageValue = 1,
+            maxStage = 1,
+            compactOrderCode = null,
+            keepHighestStage = false
+        )
+    }
+
+    private fun detectVpnTrafficSmartStage(
+        packageNameLower: String,
+        source: Notification,
+        parserDictionary: LiveParserDictionary
+    ): SmartStageMatch? {
+        val combinedText = collectNotificationText(
+            notification = source,
+            fallbackTitle = packageNameLower,
+            includeRemoteViewTexts = true
+        )
+        if (combinedText.isBlank()) {
+            return null
+        }
+        if (!hasVpnSpeedPattern(combinedText, parserDictionary)) {
+            return null
+        }
+
+        val likelyVpnPackage = isLikelyVpnPackage(packageNameLower, parserDictionary)
+        val hasVpnContext = parserDictionary.vpnContextPattern.containsMatchIn(combinedText)
+        if (!likelyVpnPackage && !hasVpnContext) {
+            return null
+        }
+
+        return SmartStageMatch(
+            aggregateKey = "$packageNameLower:vpn:vpn",
             stageValue = 1,
             maxStage = 1,
             compactOrderCode = null,
@@ -992,6 +1105,331 @@ object LiveUpdateNotifier {
             stageValue = stageValue,
             isRussianLocale = isRussianLocale(context)
         )
+    }
+
+    private fun extractExternalDeviceStatusText(
+        context: Context,
+        notification: Notification,
+        fallbackTitle: String,
+        stageValue: Int,
+        parserDictionary: LiveParserDictionary
+    ): String? {
+        val combinedText = collectNotificationText(
+            notification = notification,
+            fallbackTitle = fallbackTitle,
+            includeRemoteViewTexts = true
+        )
+        val deviceName = extractConnectedDeviceName(
+            text = combinedText,
+            parserDictionary = parserDictionary
+        )
+        val statusText = parserDictionary.resolveStatusText(
+            ruleId = "external_device",
+            stageValue = stageValue,
+            isRussianLocale = isRussianLocale(context)
+        )
+
+        return when {
+            !deviceName.isNullOrBlank() && !statusText.isNullOrBlank() -> "$deviceName · $statusText"
+            !deviceName.isNullOrBlank() -> deviceName
+            else -> statusText
+        }
+    }
+
+    private fun extractConnectedDeviceName(
+        text: String,
+        parserDictionary: LiveParserDictionary
+    ): String? {
+        for (pattern in parserDictionary.externalDeviceNamePatterns) {
+            val match = pattern.find(text) ?: continue
+            val candidate = normalizeExternalDeviceName(
+                raw = match.groupValues.getOrNull(1),
+                parserDictionary = parserDictionary
+            )
+            if (!candidate.isNullOrBlank()) {
+                return candidate
+            }
+        }
+        return null
+    }
+
+    private fun normalizeExternalDeviceName(
+        raw: String?,
+        parserDictionary: LiveParserDictionary
+    ): String? {
+        val normalized = raw.orEmpty()
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .trim('"', '\'', '«', '»', '.', ',', ':', ';')
+        if (normalized.length < 2) {
+            return null
+        }
+        val lower = normalized.lowercase(Locale.ROOT)
+        if (lower in parserDictionary.externalDeviceGenericNames) {
+            return null
+        }
+        return normalized
+    }
+
+    private fun extractVpnTrafficSpeeds(
+        notification: Notification,
+        fallbackTitle: String,
+        parserDictionary: LiveParserDictionary
+    ): VpnTrafficSpeeds? {
+        val combinedText = collectNotificationText(
+            notification = notification,
+            fallbackTitle = fallbackTitle,
+            includeRemoteViewTexts = true
+        )
+        return extractVpnTrafficSpeedsFromText(combinedText, parserDictionary)
+    }
+
+    private fun extractVpnTrafficSpeedsFromText(
+        combinedText: String,
+        parserDictionary: LiveParserDictionary
+    ): VpnTrafficSpeeds? {
+        if (combinedText.isBlank()) {
+            return null
+        }
+
+        val fallbackSpeeds = parserDictionary.vpnSpeedPattern.findAll(combinedText)
+            .map { normalizeVpnSpeedToken(it.value) }
+            .filter { it.isNotBlank() }
+            .distinctBy { it.lowercase(Locale.ROOT) }
+            .take(2)
+            .toList()
+
+        var incoming = extractDirectionalVpnSpeed(
+            text = combinedText,
+            speedPattern = parserDictionary.vpnSpeedPattern,
+            markers = parserDictionary.vpnDownloadMarkers
+        )
+        var outgoing = extractDirectionalVpnSpeed(
+            text = combinedText,
+            speedPattern = parserDictionary.vpnSpeedPattern,
+            markers = parserDictionary.vpnUploadMarkers
+        )
+        if (!incoming.isNullOrBlank() || !outgoing.isNullOrBlank()) {
+            if (outgoing.isNullOrBlank()) {
+                outgoing = pickFallbackVpnSpeed(
+                    candidates = fallbackSpeeds,
+                    exclude = incoming
+                )
+            }
+            if (incoming.isNullOrBlank()) {
+                incoming = pickFallbackVpnSpeed(
+                    candidates = fallbackSpeeds,
+                    exclude = outgoing
+                )
+            }
+            return VpnTrafficSpeeds(
+                outgoingSpeed = outgoing,
+                incomingSpeed = incoming
+            )
+        }
+
+        if (fallbackSpeeds.isEmpty()) {
+            return null
+        }
+        if (fallbackSpeeds.size == 1) {
+            return VpnTrafficSpeeds(
+                outgoingSpeed = fallbackSpeeds.first(),
+                incomingSpeed = null
+            )
+        }
+        return VpnTrafficSpeeds(
+            outgoingSpeed = fallbackSpeeds[0],
+            incomingSpeed = fallbackSpeeds[1]
+        )
+    }
+
+    private fun pickFallbackVpnSpeed(
+        candidates: List<String>,
+        exclude: String?
+    ): String? {
+        if (candidates.isEmpty()) {
+            return null
+        }
+        if (exclude.isNullOrBlank()) {
+            return candidates.first()
+        }
+        val different = candidates.firstOrNull { !it.equals(exclude, ignoreCase = true) }
+        return different ?: candidates.firstOrNull()
+    }
+
+    private fun formatDominantVpnTrafficText(vpnTraffic: VpnTrafficSpeeds?): String? {
+        vpnTraffic ?: return null
+        val outgoing = vpnTraffic.outgoingSpeed
+        val incoming = vpnTraffic.incomingSpeed
+        if (outgoing.isNullOrBlank() && incoming.isNullOrBlank()) {
+            return null
+        }
+        if (outgoing.isNullOrBlank()) {
+            return formatVpnIncomingToken(incoming)
+        }
+        if (incoming.isNullOrBlank()) {
+            return formatVpnOutgoingToken(outgoing)
+        }
+
+        val outgoingMagnitude = parseVpnSpeedMagnitude(outgoing)
+        val incomingMagnitude = parseVpnSpeedMagnitude(incoming)
+
+        return when {
+            outgoingMagnitude == null && incomingMagnitude == null ->
+                formatVpnOutgoingToken(outgoing)
+
+            outgoingMagnitude == null ->
+                formatVpnIncomingToken(incoming)
+
+            incomingMagnitude == null ->
+                formatVpnOutgoingToken(outgoing)
+
+            outgoingMagnitude > incomingMagnitude ->
+                formatVpnOutgoingToken(outgoing)
+
+            else ->
+                formatVpnIncomingToken(incoming)
+        }
+    }
+
+    private fun parseVpnSpeedMagnitude(speed: String?): Double? {
+        val normalized = speed.orEmpty()
+            .replace(" ", "")
+            .replace(',', '.')
+            .lowercase(Locale.ROOT)
+        if (normalized.isBlank()) {
+            return null
+        }
+
+        var numberEnd = 0
+        while (numberEnd < normalized.length) {
+            val ch = normalized[numberEnd]
+            if (!ch.isDigit() && ch != '.') {
+                break
+            }
+            numberEnd += 1
+        }
+        if (numberEnd == 0) {
+            return null
+        }
+
+        val numericValue = normalized.substring(0, numberEnd).toDoubleOrNull() ?: return null
+        val unitChar = normalized.drop(numberEnd).firstOrNull()
+        val multiplier = when (unitChar) {
+            'k', 'к' -> 1_000.0
+            'm', 'м' -> 1_000_000.0
+            'g', 'г' -> 1_000_000_000.0
+            't', 'т' -> 1_000_000_000_000.0
+            else -> 1.0
+        }
+        return numericValue * multiplier
+    }
+
+    private fun formatVpnOutgoingToken(speed: String?): String? {
+        if (speed.isNullOrBlank()) {
+            return null
+        }
+        return "↑$speed"
+    }
+
+    private fun formatVpnIncomingToken(speed: String?): String? {
+        if (speed.isNullOrBlank()) {
+            return null
+        }
+        return "↓$speed"
+    }
+
+    private fun extractDirectionalVpnSpeed(
+        text: String,
+        speedPattern: Regex,
+        markers: Set<String>
+    ): String? {
+        var bestSpeed: String? = null
+        var bestDistance: Int? = null
+        for (match in speedPattern.findAll(text)) {
+            val distance = nearestMarkerDistance(
+                text = text,
+                start = match.range.first,
+                endExclusive = match.range.last + 1,
+                markers = markers
+            ) ?: continue
+            val normalizedSpeed = normalizeVpnSpeedToken(match.value)
+            if (normalizedSpeed.isBlank()) {
+                continue
+            }
+            if (bestDistance == null || distance < bestDistance) {
+                bestDistance = distance
+                bestSpeed = normalizedSpeed
+            }
+        }
+        return bestSpeed
+    }
+
+    private fun nearestMarkerDistance(
+        text: String,
+        start: Int,
+        endExclusive: Int,
+        markers: Set<String>
+    ): Int? {
+        if (markers.isEmpty() || text.isEmpty()) {
+            return null
+        }
+        val windowStart = (start - 24).coerceAtLeast(0)
+        val windowEnd = (endExclusive + 24).coerceAtMost(text.length)
+        val context = text.substring(windowStart, windowEnd)
+
+        var bestDistance: Int? = null
+        for (marker in markers) {
+            val ranges = markerRangesInContext(context, marker)
+            for (range in ranges) {
+                val markerStart = windowStart + range.first
+                val markerEndExclusive = windowStart + range.last + 1
+                val distance = when {
+                    markerEndExclusive <= start -> start - markerEndExclusive
+                    markerStart >= endExclusive -> markerStart - endExclusive
+                    else -> 0
+                }
+                if (bestDistance == null || distance < bestDistance) {
+                    bestDistance = distance
+                }
+            }
+        }
+        return bestDistance
+    }
+
+    private fun markerRangesInContext(context: String, marker: String): List<IntRange> {
+        val normalized = marker.trim()
+        if (normalized.isEmpty()) {
+            return emptyList()
+        }
+
+        val hasWordChars = normalized.any { it.isLetterOrDigit() }
+        if (hasWordChars) {
+            return Regex("\\b${Regex.escape(normalized)}\\b", setOf(RegexOption.IGNORE_CASE))
+                .findAll(context)
+                .map { it.range }
+                .toList()
+        }
+
+        val ranges = mutableListOf<IntRange>()
+        var fromIndex = 0
+        while (fromIndex < context.length) {
+            val index = context.indexOf(normalized, fromIndex)
+            if (index < 0) {
+                break
+            }
+            ranges += index until (index + normalized.length)
+            fromIndex = index + normalized.length
+        }
+        return ranges
+    }
+
+    private fun normalizeVpnSpeedToken(raw: String): String {
+        return raw
+            .replace(Regex("\\s+"), "")
+            .replace("/с", "/s")
+            .replace("/С", "/s")
+            .replace("сек", "s", ignoreCase = true)
     }
 
     private fun extractNavigationDistanceText(
@@ -1258,27 +1696,48 @@ object LiveUpdateNotifier {
         val uniqueRenderableTokens = normalizedTokens
             .mapNotNull { it }
             .distinctBy { it.lowercase(Locale.ROOT) }
-        if (uniqueRenderableTokens.size < 2) {
-            return
-        }
-        val generation = synchronized(stateLock) {
+        val generationToStart = synchronized(stateLock) {
+            if (uniqueRenderableTokens.size < 2) {
+                smartAnimationGenerations.remove(aggregateKey)
+                smartAnimationStates.remove(aggregateKey)
+                return@synchronized null
+            }
+
+            val existingState = smartAnimationStates[aggregateKey]
+            if (existingState != null && smartAnimationGenerations.containsKey(aggregateKey)) {
+                existingState.sbn = sbn
+                existingState.appPresentationOverride = appPresentationOverride
+                existingState.progressOverride = progressOverride
+                existingState.smartRuleId = smartRuleId
+                existingState.tokens = normalizedTokens
+                if (!normalizedInitial.isNullOrBlank() &&
+                    normalizedTokens.any { it.equals(normalizedInitial, ignoreCase = true) } &&
+                    existingState.lastShownToken.isNullOrBlank()
+                ) {
+                    existingState.lastShownToken = normalizedInitial
+                }
+                return@synchronized null
+            }
+
             val nextGeneration = (smartAnimationGenerations[aggregateKey] ?: 0L) + 1L
             smartAnimationGenerations[aggregateKey] = nextGeneration
+            smartAnimationStates[aggregateKey] = SmartAnimationState(
+                sbn = sbn,
+                appPresentationOverride = appPresentationOverride,
+                progressOverride = progressOverride,
+                smartRuleId = smartRuleId,
+                tokens = normalizedTokens,
+                nextIndex = 0,
+                lastShownToken = normalizedInitial
+            )
             nextGeneration
-        }
+        } ?: return
+
         scheduleSmartAnimationStep(
             context = context,
             manager = manager,
             aggregateKey = aggregateKey,
-            sbn = sbn,
-            appPresentationOverride = appPresentationOverride,
-            progressOverride = progressOverride,
-            smartRuleId = smartRuleId,
-            tokens = normalizedTokens,
-            index = 0,
-            generation = generation,
-            lastShownToken = normalizedInitial,
-            skipBudget = normalizedTokens.size
+            generation = generationToStart
         )
     }
 
@@ -1286,62 +1745,47 @@ object LiveUpdateNotifier {
         context: Context,
         manager: NotificationManagerCompat,
         aggregateKey: String,
-        sbn: StatusBarNotification,
-        appPresentationOverride: AppPresentationOverride,
-        progressOverride: ProgressOverride?,
-        smartRuleId: String,
-        tokens: List<String?>,
-        index: Int,
-        generation: Long,
-        lastShownToken: String?,
-        skipBudget: Int
+        generation: Long
     ) {
-        if (tokens.isEmpty()) {
-            return
-        }
-        val safeIndex = ((index % tokens.size) + tokens.size) % tokens.size
-        val token = tokens[safeIndex]
-        if (token.isNullOrBlank() || token.equals(lastShownToken, ignoreCase = true)) {
-            if (skipBudget <= 0) {
-                return
-            }
-            scheduleSmartAnimationStep(
-                context = context,
-                manager = manager,
-                aggregateKey = aggregateKey,
-                sbn = sbn,
-                appPresentationOverride = appPresentationOverride,
-                progressOverride = progressOverride,
-                smartRuleId = smartRuleId,
-                tokens = tokens,
-                index = (safeIndex + 1) % tokens.size,
-                generation = generation,
-                lastShownToken = lastShownToken,
-                skipBudget = skipBudget - 1
-            )
-            return
-        }
         mainHandler.postDelayed({
-            if (!isSmartAnimationGenerationCurrent(aggregateKey, generation)) {
-                return@postDelayed
-            }
-            if (!ConverterPrefs(context).getAnimatedIslandEnabled()) {
-                synchronized(stateLock) {
+            val frame = synchronized(stateLock) {
+                if (!isSmartAnimationGenerationCurrentLocked(aggregateKey, generation)) {
+                    return@synchronized null
+                }
+                if (!ConverterPrefs(context).getAnimatedIslandEnabled()) {
                     if (smartAnimationGenerations[aggregateKey] == generation) {
                         smartAnimationGenerations.remove(aggregateKey)
                     }
+                    smartAnimationStates.remove(aggregateKey)
+                    return@synchronized null
                 }
-                return@postDelayed
-            }
+                val animationState = smartAnimationStates[aggregateKey] ?: return@synchronized null
+                val nextToken = pickNextSmartAnimationToken(
+                    tokens = animationState.tokens,
+                    startIndex = animationState.nextIndex,
+                    lastShownToken = animationState.lastShownToken
+                ) ?: return@synchronized null
+
+                animationState.nextIndex = nextToken.nextIndex
+                animationState.lastShownToken = nextToken.token
+                SmartAnimationFrame(
+                    sbn = animationState.sbn,
+                    appPresentationOverride = animationState.appPresentationOverride,
+                    progressOverride = animationState.progressOverride,
+                    smartRuleId = animationState.smartRuleId,
+                    token = nextToken.token
+                )
+            } ?: return@postDelayed
+
             try {
                 val notification = buildMirroredNotification(
                     context = context,
-                    sbn = sbn,
-                    appPresentationOverride = appPresentationOverride,
-                    progressOverride = progressOverride,
+                    sbn = frame.sbn,
+                    appPresentationOverride = frame.appPresentationOverride,
+                    progressOverride = frame.progressOverride,
                     otpOverride = null,
-                    smartShortTextOverride = token,
-                    smartRuleId = smartRuleId,
+                    smartShortTextOverride = frame.token,
+                    smartRuleId = frame.smartRuleId,
                     requestPromoted = true
                 )
                 notifyWithPromotionFallback(
@@ -1349,12 +1793,12 @@ object LiveUpdateNotifier {
                     manager = manager,
                     notificationId = mirrorIdForKey(aggregateKey),
                     promotedNotification = notification,
-                    sbn = sbn,
-                    appPresentationOverride = appPresentationOverride,
-                    progressOverride = progressOverride,
+                    sbn = frame.sbn,
+                    appPresentationOverride = frame.appPresentationOverride,
+                    progressOverride = frame.progressOverride,
                     otpOverride = null,
-                    smartShortTextOverride = token,
-                    smartRuleId = smartRuleId
+                    smartShortTextOverride = frame.token,
+                    smartRuleId = frame.smartRuleId
                 )
             } catch (error: Throwable) {
                 Log.e(TAG, "Failed smart island animation update: $aggregateKey", error)
@@ -1362,32 +1806,54 @@ object LiveUpdateNotifier {
             if (!isSmartAnimationGenerationCurrent(aggregateKey, generation)) {
                 return@postDelayed
             }
-            val nextIndex = (safeIndex + 1) % tokens.size
             scheduleSmartAnimationStep(
                 context = context,
                 manager = manager,
                 aggregateKey = aggregateKey,
-                sbn = sbn,
-                appPresentationOverride = appPresentationOverride,
-                progressOverride = progressOverride,
-                smartRuleId = smartRuleId,
-                tokens = tokens,
-                index = nextIndex,
-                generation = generation,
-                lastShownToken = token,
-                skipBudget = tokens.size
+                generation = generation
             )
         }, nextSmartIslandDelayMs())
     }
 
     private fun isSmartAnimationGenerationCurrent(aggregateKey: String, generation: Long): Boolean {
         return synchronized(stateLock) {
-            val state = aggregateStates[aggregateKey] ?: return@synchronized false
-            if (state.activeSbnKeys.isEmpty()) {
-                return@synchronized false
-            }
-            smartAnimationGenerations[aggregateKey] == generation
+            isSmartAnimationGenerationCurrentLocked(aggregateKey, generation)
         }
+    }
+
+    private fun isSmartAnimationGenerationCurrentLocked(aggregateKey: String, generation: Long): Boolean {
+        val state = aggregateStates[aggregateKey] ?: return false
+        if (state.activeSbnKeys.isEmpty()) {
+            return false
+        }
+        if (!smartAnimationStates.containsKey(aggregateKey)) {
+            return false
+        }
+        return smartAnimationGenerations[aggregateKey] == generation
+    }
+
+    private fun pickNextSmartAnimationToken(
+        tokens: List<String?>,
+        startIndex: Int,
+        lastShownToken: String?
+    ): SmartAnimationToken? {
+        if (tokens.isEmpty()) {
+            return null
+        }
+        var index = ((startIndex % tokens.size) + tokens.size) % tokens.size
+        var attemptsLeft = tokens.size
+        while (attemptsLeft > 0) {
+            val token = tokens[index]
+            if (!token.isNullOrBlank() && !token.equals(lastShownToken, ignoreCase = true)) {
+                return SmartAnimationToken(
+                    token = token,
+                    nextIndex = (index + 1) % tokens.size
+                )
+            }
+            index = (index + 1) % tokens.size
+            attemptsLeft -= 1
+        }
+        return null
     }
 
     private fun nextSmartIslandDelayMs(): Long {
@@ -1846,7 +2312,6 @@ object LiveUpdateNotifier {
     }
 
     private fun copySourceActions(
-        context: Context,
         source: Notification,
         builder: NotificationCompat.Builder,
         maxActions: Int
@@ -1857,25 +2322,29 @@ object LiveUpdateNotifier {
         }
 
         actions.take(maxActions.coerceAtLeast(0)).forEach { frameworkAction ->
-            val compatAction = toCompatAction(context, frameworkAction) ?: return@forEach
+            val compatAction = toCompatAction(frameworkAction) ?: return@forEach
             builder.addAction(compatAction)
         }
     }
 
-    private fun toCompatAction(
-        context: Context,
-        frameworkAction: Notification.Action
-    ): NotificationCompat.Action? {
+    private fun toCompatAction(frameworkAction: Notification.Action): NotificationCompat.Action? {
         if (frameworkAction.actionIntent == null) {
             return null
         }
 
         return try {
-            NotificationCompat.Action.Builder.fromAndroidAction(frameworkAction).build()
+            val copied = NotificationCompat.Action.Builder.fromAndroidAction(frameworkAction).build()
+            NotificationCompat.Action.Builder(
+                transparentActionIcon,
+                copied.title?.toString()?.takeIf { it.isNotBlank() }
+                    ?: frameworkAction.title?.toString()?.takeIf { it.isNotBlank() }
+                    ?: "Action",
+                copied.actionIntent ?: frameworkAction.actionIntent
+            ).build()
         } catch (_: Exception) {
             val title = frameworkAction.title?.toString()?.takeIf { it.isNotBlank() } ?: "Action"
             NotificationCompat.Action.Builder(
-                IconCompat.createWithResource(context, R.drawable.ic_stat_liveupdate),
+                transparentActionIcon,
                 title,
                 frameworkAction.actionIntent
             ).build()
@@ -1999,6 +2468,90 @@ object LiveUpdateNotifier {
         return parserDictionary.weatherPackageHints.any(packageNameLower::contains)
     }
 
+    private fun isLikelySmartRulePackage(
+        packageNameLower: String,
+        ruleId: String,
+        parserDictionary: LiveParserDictionary
+    ): Boolean {
+        val targetRule = parserDictionary.smartRules.firstOrNull { it.id == ruleId } ?: return false
+        return targetRule.packageHints.any(packageNameLower::contains)
+    }
+
+    private fun isLikelyVpnPackage(
+        packageNameLower: String,
+        parserDictionary: LiveParserDictionary
+    ): Boolean {
+        if (isLikelySmartRulePackage(packageNameLower, "vpn", parserDictionary)) {
+            return true
+        }
+        return parserDictionary.vpnPackageMarkers.any(packageNameLower::contains)
+    }
+
+    private fun shouldSuppressVpnWithoutTraffic(
+        packageName: String,
+        source: Notification,
+        parserDictionary: LiveParserDictionary
+    ): Boolean {
+        val packageLower = packageName.lowercase(Locale.ROOT)
+        val combinedText = collectVpnDetectionText(
+            notification = source,
+            fallbackTitle = packageName,
+            includeRemoteViewTexts = true
+        )
+        if (combinedText.isBlank()) {
+            return false
+        }
+        if (hasVpnSpeedPattern(combinedText, parserDictionary)) {
+            return false
+        }
+        val likelyVpnPackage = isLikelyVpnPackage(packageLower, parserDictionary)
+        val hasVpnContext = parserDictionary.vpnContextPattern.containsMatchIn(combinedText)
+        return likelyVpnPackage || hasVpnContext
+    }
+
+    private fun collectVpnDetectionText(
+        notification: Notification,
+        fallbackTitle: String,
+        includeRemoteViewTexts: Boolean
+    ): String {
+        val base = collectNotificationText(
+            notification = notification,
+            fallbackTitle = fallbackTitle,
+            includeRemoteViewTexts = includeRemoteViewTexts
+        )
+        val parts = mutableListOf<String>()
+        if (base.isNotBlank()) {
+            parts += base
+        }
+        notification.tickerText?.toString()?.trim()?.takeIf { it.isNotBlank() }?.let(parts::add)
+        notification.channelId?.trim()?.takeIf { it.isNotBlank() }?.let(parts::add)
+        notification.group?.trim()?.takeIf { it.isNotBlank() }?.let(parts::add)
+        notification.sortKey?.trim()?.takeIf { it.isNotBlank() }?.let(parts::add)
+        notification.category?.trim()?.takeIf { it.isNotBlank() }?.let(parts::add)
+        notification.actions
+            ?.mapNotNull { it.title?.toString()?.trim() }
+            ?.filter { it.isNotBlank() }
+            ?.forEach(parts::add)
+
+        if (parts.isEmpty()) {
+            return ""
+        }
+        return parts
+            .joinToString(" ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+
+    private fun hasVpnSpeedPattern(
+        text: String,
+        parserDictionary: LiveParserDictionary
+    ): Boolean {
+        if (text.isBlank()) {
+            return false
+        }
+        return parserDictionary.vpnSpeedPattern.containsMatchIn(text)
+    }
+
     private fun mirrorIdForKey(key: String): Int {
         val value = key.hashCode()
         return if (value == Int.MIN_VALUE) 0 else abs(value)
@@ -2050,10 +2603,12 @@ object LiveUpdateNotifier {
                 if (state.activeSbnKeys.isEmpty()) {
                     aggregateStates.remove(smartAggregateKey)
                     smartAnimationGenerations.remove(smartAggregateKey)
+                    smartAnimationStates.remove(smartAggregateKey)
                     idsToCancel.add(mirrorIdForKey(smartAggregateKey))
                 }
             } else {
                 smartAnimationGenerations.remove(smartAggregateKey)
+                smartAnimationStates.remove(smartAggregateKey)
                 idsToCancel.add(mirrorIdForKey(smartAggregateKey))
             }
         }
@@ -2148,6 +2703,34 @@ object LiveUpdateNotifier {
         val maxStage: Int,
         val compactOrderCode: String?,
         val keepHighestStage: Boolean
+    )
+
+    private data class VpnTrafficSpeeds(
+        val outgoingSpeed: String?,
+        val incomingSpeed: String?
+    )
+
+    private data class SmartAnimationState(
+        var sbn: StatusBarNotification,
+        var appPresentationOverride: AppPresentationOverride,
+        var progressOverride: ProgressOverride?,
+        var smartRuleId: String,
+        var tokens: List<String?>,
+        var nextIndex: Int,
+        var lastShownToken: String?
+    )
+
+    private data class SmartAnimationFrame(
+        val sbn: StatusBarNotification,
+        val appPresentationOverride: AppPresentationOverride,
+        val progressOverride: ProgressOverride?,
+        val smartRuleId: String,
+        val token: String
+    )
+
+    private data class SmartAnimationToken(
+        val token: String,
+        val nextIndex: Int
     )
 
     private data class TextProgressMatch(

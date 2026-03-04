@@ -143,6 +143,83 @@
           "pattern": "(маршрут построен|маршрут начат|navigation started|starting route|follow the route|route started)"
         }
       ]
+    },
+    {
+      "id": "external_device",
+      "max_stage": 2,
+      "package_hints": [
+        "camera",
+        "bluetooth",
+        "accessory",
+        "usb",
+        "gopro",
+        "dji"
+      ],
+      "text_triggers": [
+        "camera",
+        "bluetooth",
+        "accessory",
+        "usb",
+        "gopro",
+        "dji",
+        "pair",
+        "connected",
+        "connecting",
+        "is connected",
+        "подключ",
+        "соедин"
+      ],
+      "exclude_patterns": [
+        "(с дн[её]м рождения|happy birthday|birthday)",
+        "(дарим\\s+скидк|скидк[\\p{L}]*\\s*\\d+%|\\d+%\\s*(скидк|off)|акци[яи]|промокод|promo\\s*code|coupon|cash\\s*back|кэшб[еэ]к)",
+        "(hotspot|personal\\s+hotspot|tether(?:ing)?|wifi\\s+hotspot|точк[аеи]\\s+доступа|раздач[аи]\\s+интернета|клиент(?:ов|ы)?\\s+подключ(?:ен|ено|ены)?|\\b\\d+\\s+devices?\\b)"
+      ],
+      "signals": [
+        {
+          "stage": 2,
+          "pattern": "(connected\\b|pair(?:ed)?\\b|подключ(?:ен(?:а|о|ы)?|ено)\\b|соедин(?:ен(?:а|о|ы)?|ено)\\b)"
+        },
+        {
+          "stage": 1,
+          "pattern": "(connecting\\b|pair(?:ing)?\\b|подключ(?:ается|ение)\\b|соедин(?:яется|ение)\\b)"
+        }
+      ]
+    },
+    {
+      "id": "vpn",
+      "max_stage": 1,
+      "package_hints": [
+        "vpn",
+        "wireguard",
+        "openvpn",
+        "nordvpn",
+        "protonvpn",
+        "surfshark",
+        "expressvpn",
+        "outline",
+        "amnezia",
+        "clash",
+        "v2ray",
+        "hiddify",
+        "tailscale",
+        "zerotier"
+      ],
+      "text_triggers": [
+        "vpn",
+        "wireguard",
+        "openvpn",
+        "tunnel",
+        "туннел",
+        "secure connection",
+        "защищенн",
+        "виртуальн"
+      ],
+      "signals": [
+        {
+          "stage": 1,
+          "pattern": "(?<!\\d)\\d{1,4}(?:[.,]\\d{1,2})?\\s*(?:[kmgт]?i?[bб])\\s*(?:(?:/\\s*[sс])|(?:/\\s*sec)|ps)\\b"
+        }
+      ]
     }
   ],
   "blocked_source_packages": ["ru.dublgis.dgismobile"],
@@ -209,6 +286,83 @@
   "weather_condition_wind_pattern": "(ветер|ветрено|wind|windy|gust)",
   "weather_condition_sun_pattern": "(солнечно|ясно|sunny|clear)",
   "weather_condition_cloud_pattern": "(пасмурно|облачно|cloud|overcast)",
+  "external_device_name_patterns": [
+    "(?:connected|connecting|pair(?:ed|ing)|подключ(?:ен(?:а|о|ы)?|ается|ение)|соедин(?:ен(?:а|о|ы)?|яется))\\s*(?:to|к)?\\s*[\"«]?([\\p{L}\\p{N}][\\p{L}\\p{N} ._#\\-]{1,40})[\"»]?(?=\\s|$|[,.!])",
+    "[\"«]?([\\p{L}\\p{N}][\\p{L}\\p{N} ._#\\-]{1,40})[\"»]?\\s*(?:is\\s+)?(?:connected|connecting|pair(?:ed|ing)|подключ(?:ен(?:а|о|ы)?|ается|ение)|соедин(?:ен(?:а|о|ы)?|яется))\\b"
+  ],
+  "external_device_generic_names": [
+    "device",
+    "devices",
+    "1 device",
+    "2 devices",
+    "3 devices",
+    "4 devices",
+    "5 devices",
+    "camera",
+    "accessory",
+    "bluetooth",
+    "usb",
+    "wifi",
+    "hotspot",
+    "your hotspot",
+    "wifi hotspot",
+    "personal hotspot",
+    "устройство",
+    "устройства",
+    "точка доступа",
+    "камера",
+    "аксессуар"
+  ],
+  "vpn_speed_pattern": "(?<!\\d)\\d{1,4}(?:[.,]\\d{1,2})?\\s*(?:[kmgт]?i?[bб])\\s*(?:(?:/\\s*[sс])|(?:/\\s*sec)|ps)\\b",
+  "vpn_context_pattern": "(\\bvpn\\b|wireguard|openvpn|hiddify|clash|v2ray|singbox|outline|amnezia|tailscale|zerotier|туннел|прокси|proxy)",
+  "vpn_package_markers": [
+    "hiddify",
+    "wireguard",
+    "openvpn",
+    "nordvpn",
+    "protonvpn",
+    "surfshark",
+    "expressvpn",
+    "outline",
+    "amnezia",
+    "clash",
+    "v2ray",
+    "hysteria",
+    "singbox",
+    "tailscale",
+    "zerotier",
+    "vpn"
+  ],
+  "vpn_download_markers": [
+    "↓",
+    "dl",
+    "downlink",
+    "download",
+    "down",
+    "rx",
+    "recv",
+    "receive",
+    "incoming",
+    "inbound",
+    "ingress",
+    "вход",
+    "прием",
+    "приём"
+  ],
+  "vpn_upload_markers": [
+    "↑",
+    "ul",
+    "uplink",
+    "upload",
+    "up",
+    "tx",
+    "send",
+    "outgoing",
+    "outbound",
+    "egress",
+    "исход",
+    "отправ"
+  ],
   "otp_code_patterns": [
     "(?<!\\d)(\\d{4,8})(?!\\d)",
     "(?<!\\d)(\\d(?:[\\s-]?\\d){3,7})(?!\\d)"
@@ -264,6 +418,24 @@
         "2": "Navigation",
         "3": "Almost there",
         "4": "Arrived"
+      }
+    },
+    "external_device": {
+      "ru": {
+        "1": "Подключение",
+        "2": "Подключено"
+      },
+      "en": {
+        "1": "Connecting",
+        "2": "Connected"
+      }
+    },
+    "vpn": {
+      "ru": {
+        "1": "VPN"
+      },
+      "en": {
+        "1": "VPN"
       }
     }
   }

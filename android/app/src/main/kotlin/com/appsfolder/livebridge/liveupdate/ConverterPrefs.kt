@@ -159,6 +159,22 @@ class ConverterPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_SMART_WEATHER_ENABLED, value).apply()
     }
 
+    fun getSmartExternalDevicesEnabled(): Boolean {
+        return prefs.getBoolean(KEY_SMART_EXTERNAL_DEVICES_ENABLED, true)
+    }
+
+    fun setSmartExternalDevicesEnabled(value: Boolean) {
+        prefs.edit().putBoolean(KEY_SMART_EXTERNAL_DEVICES_ENABLED, value).apply()
+    }
+
+    fun getSmartVpnEnabled(): Boolean {
+        return prefs.getBoolean(KEY_SMART_VPN_ENABLED, true)
+    }
+
+    fun setSmartVpnEnabled(value: Boolean) {
+        prefs.edit().putBoolean(KEY_SMART_VPN_ENABLED, value).apply()
+    }
+
     fun getOtpDetectionEnabled(): Boolean {
         return prefs.getBoolean(KEY_OTP_DETECTION_ENABLED, true)
     }
@@ -341,6 +357,8 @@ class ConverterPrefs(context: Context) {
         private const val KEY_SMART_STATUS_ENABLED = "smart_status_enabled"
         private const val KEY_SMART_NAVIGATION_ENABLED = "smart_navigation_enabled"
         private const val KEY_SMART_WEATHER_ENABLED = "smart_weather_enabled"
+        private const val KEY_SMART_EXTERNAL_DEVICES_ENABLED = "smart_external_devices_enabled"
+        private const val KEY_SMART_VPN_ENABLED = "smart_vpn_enabled"
         private const val KEY_OTP_DETECTION_ENABLED = "otp_detection_enabled"
         private const val KEY_OTP_AUTO_COPY_ENABLED = "otp_auto_copy_enabled"
         private const val KEY_OTP_PACKAGE_RULES = "otp_package_rules"

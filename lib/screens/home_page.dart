@@ -30,6 +30,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
       'https://api.github.com/repos/appsfolder/livebridge/releases/latest';
   static const String _dictionaryRawUrl =
       'https://raw.githubusercontent.com/appsfolder/livebridge/refs/heads/main/android/app/src/main/assets/liveupdate_dictionary.json';
+  static const bool _dictionaryAutoSyncEnabled = false;
   static const Duration _updateCheckInterval = Duration(hours: 6);
 
   final TextEditingController _rulesController = TextEditingController();
@@ -54,6 +55,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool _smartDetectionEnabled = true;
   bool _smartNavigationEnabled = true;
   bool _smartWeatherEnabled = true;
+  bool _smartExternalDevicesEnabled = true;
+  bool _smartVpnEnabled = true;
   bool _otpDetectionEnabled = true;
   bool _otpAutoCopyEnabled = false;
   bool _hasCustomParserDictionary = false;
@@ -198,6 +201,10 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           await LiveBridgePlatform.getSmartNavigationEnabled();
       final bool smartWeatherEnabled =
           await LiveBridgePlatform.getSmartWeatherEnabled();
+      final bool smartExternalDevicesEnabled =
+          await LiveBridgePlatform.getSmartExternalDevicesEnabled();
+      final bool smartVpnEnabled =
+          await LiveBridgePlatform.getSmartVpnEnabled();
       final bool otpDetectionEnabled =
           await LiveBridgePlatform.getOtpDetectionEnabled();
       final bool otpAutoCopyEnabled =
@@ -280,6 +287,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         _smartDetectionEnabled = smartDetectionEnabled;
         _smartNavigationEnabled = smartNavigationEnabled;
         _smartWeatherEnabled = smartWeatherEnabled;
+        _smartExternalDevicesEnabled = smartExternalDevicesEnabled;
+        _smartVpnEnabled = smartVpnEnabled;
         _otpDetectionEnabled = otpDetectionEnabled;
         _otpAutoCopyEnabled = otpAutoCopyEnabled;
         _updateChecksEnabled = updateChecksEnabled;
@@ -415,7 +424,9 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
 
       await LiveBridgePlatform.setUpdateLastCheckAtMs(nowMs);
       await _checkReleaseUpdateAvailability();
-      await _syncParserDictionaryWithGithubIfNeeded();
+      if (_dictionaryAutoSyncEnabled) {
+        await _syncParserDictionaryWithGithubIfNeeded();
+      }
     } catch (_) {
     } finally {
       _isCheckingUpdates = false;
@@ -721,6 +732,18 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     HapticFeedback.selectionClick();
     setState(() => _smartWeatherEnabled = value);
     await LiveBridgePlatform.setSmartWeatherEnabled(value);
+  }
+
+  Future<void> _setSmartExternalDevices(bool value) async {
+    HapticFeedback.selectionClick();
+    setState(() => _smartExternalDevicesEnabled = value);
+    await LiveBridgePlatform.setSmartExternalDevicesEnabled(value);
+  }
+
+  Future<void> _setSmartVpn(bool value) async {
+    HapticFeedback.selectionClick();
+    setState(() => _smartVpnEnabled = value);
+    await LiveBridgePlatform.setSmartVpnEnabled(value);
   }
 
   Future<void> _setOtpDetection(bool value) async {
@@ -1908,6 +1931,46 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
             subtitle: Text(
               _smartDetectionEnabled
                   ? s.smartWeatherSubtitle
+                  : s.smartNavigationDisabledSubtitle,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile.adaptive(
+            value: _smartExternalDevicesEnabled,
+            onChanged: _smartDetectionEnabled ? _setSmartExternalDevices : null,
+            title: Text(
+              s.smartExternalDevicesTitle,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              _smartDetectionEnabled
+                  ? s.smartExternalDevicesSubtitle
+                  : s.smartNavigationDisabledSubtitle,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile.adaptive(
+            value: _smartVpnEnabled,
+            onChanged: _smartDetectionEnabled ? _setSmartVpn : null,
+            title: Text(
+              s.smartVpnTitle,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              _smartDetectionEnabled
+                  ? s.smartVpnSubtitle
                   : s.smartNavigationDisabledSubtitle,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

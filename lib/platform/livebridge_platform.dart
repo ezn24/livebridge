@@ -119,6 +119,13 @@ class LiveBridgePlatform {
       _askBool('getSmartWeatherEnabled');
   static Future<bool> setSmartWeatherEnabled(bool value) =>
       _askBool('setSmartWeatherEnabled', {'value': value});
+  static Future<bool> getSmartExternalDevicesEnabled() =>
+      _askBool('getSmartExternalDevicesEnabled');
+  static Future<bool> setSmartExternalDevicesEnabled(bool value) =>
+      _askBool('setSmartExternalDevicesEnabled', {'value': value});
+  static Future<bool> getSmartVpnEnabled() => _askBool('getSmartVpnEnabled');
+  static Future<bool> setSmartVpnEnabled(bool value) =>
+      _askBool('setSmartVpnEnabled', {'value': value});
   static Future<bool> getOtpDetectionEnabled() =>
       _askBool('getOtpDetectionEnabled');
   static Future<bool> setOtpDetectionEnabled(bool value) =>

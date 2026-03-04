@@ -241,6 +241,15 @@ class AppStrings {
   String get smartWeatherSubtitle => isRu
       ? 'Распознавание погодных уведомлений (температура в острове).'
       : 'Weather notification detection (temperature in island).';
+  String get smartExternalDevicesTitle =>
+      isRu ? 'Внешние устройства' : 'External devices';
+  String get smartExternalDevicesSubtitle => isRu
+      ? 'Показывает статус connected/connecting и имя устройства в острове.'
+      : 'Shows connected/connecting status and device name in island.';
+  String get smartVpnTitle => isRu ? 'VPN-сервисы' : 'VPN services';
+  String get smartVpnSubtitle => isRu
+      ? 'Показывает входящий/исходящий трафик в формате *b/s.'
+      : 'Shows incoming/outgoing traffic speed in *b/s format.';
   String get smartNavigationDisabledSubtitle => isRu
       ? 'Сначала включите умное распознавание.'
       : 'Enable smart status detection first.';
