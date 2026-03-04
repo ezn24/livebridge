@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -17,9 +18,15 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.drawable.Drawable
 import android.icu.text.BreakIterator
+import android.media.MediaMetadata
+import android.media.session.MediaController
+import android.media.session.MediaSession
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -62,6 +69,7 @@ object LiveUpdateNotifier {
     private val otpAnimationGenerations = mutableMapOf<String, Long>()
     private val smartAnimationGenerations = mutableMapOf<String, Long>()
     private val smartAnimationStates = mutableMapOf<String, SmartAnimationState>()
+    private val isAospLikeDevice by lazy { detectAospLikeDevice() }
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -171,7 +179,8 @@ object LiveUpdateNotifier {
                 return true
             }
             val parserDictionary = LiveParserDictionaryLoader.get(context, prefs)
-            if (!passesBaseFilters(prefs, sbn, parserDictionary)) {
+            val mediaPlaybackSmartEnabled = prefs.getSmartMediaPlaybackEnabled() && isAospLikeDevice
+            if (!passesBaseFilters(prefs, sbn, parserDictionary, mediaPlaybackSmartEnabled)) {
                 val staleAggregateIds = synchronized(stateLock) {
                     clearAggregateTrackingForSbnKeyLocked(sbn.key)
                 }
@@ -182,8 +191,20 @@ object LiveUpdateNotifier {
             val source = sbn.notification
             val hasNativeProgress = hasProgress(source)
             val animatedIslandEnabled = prefs.getAnimatedIslandEnabled()
+            val isMediaPlaybackNotification = mediaPlaybackSmartEnabled &&
+                    isLikelyMediaPlaybackNotification(source)
+            val mediaPlaybackSnapshot = if (isMediaPlaybackNotification) {
+                extractMediaPlaybackSnapshot(
+                    context = context,
+                    notification = source,
+                    sourcePackageName = sbn.packageName
+                )
+            } else {
+                null
+            }
 
-            val otpMatch = if (!hasNativeProgress &&
+            val otpMatch = if (!isMediaPlaybackNotification &&
+                !hasNativeProgress &&
                 prefs.getOtpDetectionEnabled() &&
                 prefs.isOtpPackageAllowed(sbn.packageName)
             ) {
@@ -192,7 +213,10 @@ object LiveUpdateNotifier {
                 null
             }
 
-            val smartMatch = if (otpMatch == null && prefs.getSmartStatusDetectionEnabled()) {
+            val smartMatch = if (!isMediaPlaybackNotification &&
+                otpMatch == null &&
+                prefs.getSmartStatusDetectionEnabled()
+            ) {
                 detectSmartStage(
                     packageName = sbn.packageName,
                     source = source,
@@ -207,7 +231,8 @@ object LiveUpdateNotifier {
                 null
             }
 
-            val textProgressMatch = if (!hasNativeProgress &&
+            val textProgressMatch = if (!isMediaPlaybackNotification &&
+                !hasNativeProgress &&
                 otpMatch == null &&
                 prefs.getTextProgressEnabled()
             ) {
@@ -220,7 +245,8 @@ object LiveUpdateNotifier {
                 null
             }
 
-            val shouldSuppressNonTrafficVpn = otpMatch == null &&
+            val shouldSuppressNonTrafficVpn = !isMediaPlaybackNotification &&
+                    otpMatch == null &&
                     smartMatch == null &&
                     textProgressMatch == null &&
                     prefs.getSmartVpnEnabled() &&
@@ -239,6 +265,7 @@ object LiveUpdateNotifier {
             }
 
             if (!hasNativeProgress &&
+                !isMediaPlaybackNotification &&
                 otpMatch == null &&
                 smartMatch == null &&
                 textProgressMatch == null &&
@@ -253,6 +280,52 @@ object LiveUpdateNotifier {
             }
 
             when {
+                isMediaPlaybackNotification -> {
+                    val staleAggregateIds = synchronized(stateLock) {
+                        clearAggregateTrackingForSbnKeyLocked(sbn.key)
+                    }
+                    staleAggregateIds.forEach(manager::cancel)
+
+                    val mediaProgressOverride = mediaPlaybackSnapshot?.toProgressOverride()
+                    val mediaShortText = mediaPlaybackSnapshot?.let(::buildMediaPlaybackShortText)
+                    val mediaTitle = mediaPlaybackSnapshot?.title
+                    val mediaText = mediaPlaybackSnapshot?.artist
+                    val mediaLargeIcon = mediaPlaybackSnapshot?.albumArt
+                    val notification = buildMirroredNotification(
+                        context = context,
+                        sbn = sbn,
+                        appPresentationOverride = appPresentationOverride,
+                        progressOverride = mediaProgressOverride,
+                        otpOverride = null,
+                        smartShortTextOverride = mediaShortText,
+                        requestPromoted = true,
+                        allowNavigationIconHeuristics = false,
+                        preferMediaControls = true,
+                        mediaPlaybackIsPlaying = mediaPlaybackSnapshot?.isPlaying,
+                        titleOverride = mediaTitle,
+                        textOverride = mediaText,
+                        largeIconOverride = mediaLargeIcon
+                    )
+                    notifyWithPromotionFallback(
+                        context = context,
+                        manager = manager,
+                        notificationId = mirrorIdForKey(sbn.key),
+                        promotedNotification = notification,
+                        sbn = sbn,
+                        appPresentationOverride = appPresentationOverride,
+                        progressOverride = mediaProgressOverride,
+                        otpOverride = null,
+                        smartShortTextOverride = mediaShortText,
+                        allowNavigationIconHeuristics = false,
+                        preferMediaControls = true,
+                        mediaPlaybackIsPlaying = mediaPlaybackSnapshot?.isPlaying,
+                        titleOverride = mediaTitle,
+                        textOverride = mediaText,
+                        largeIconOverride = mediaLargeIcon
+                    )
+                    true
+                }
+
                 otpMatch != null -> {
                     val routeState = synchronized(stateLock) {
                         val staleAggregateIds = mutableListOf<Int>()
@@ -592,11 +665,12 @@ object LiveUpdateNotifier {
     private fun passesBaseFilters(
         prefs: ConverterPrefs,
         sbn: StatusBarNotification,
-        parserDictionary: LiveParserDictionary
+        parserDictionary: LiveParserDictionary,
+        mediaPlaybackSmartEnabled: Boolean
     ): Boolean {
         val source = sbn.notification
 
-        if (isLikelyMediaPlaybackNotification(source)) {
+        if (isLikelyMediaPlaybackNotification(source) && !mediaPlaybackSmartEnabled) {
             return false
         }
 
@@ -637,7 +711,12 @@ object LiveUpdateNotifier {
         smartRuleId: String? = null,
         requestPromoted: Boolean,
         otpShortTextOverride: String? = null,
-        allowNavigationIconHeuristics: Boolean = true
+        allowNavigationIconHeuristics: Boolean = true,
+        preferMediaControls: Boolean = false,
+        mediaPlaybackIsPlaying: Boolean? = null,
+        titleOverride: String? = null,
+        textOverride: String? = null,
+        largeIconOverride: Bitmap? = null
     ): Notification {
         val runtimePrefs = ConverterPrefs(context)
         val parserDictionary = LiveParserDictionaryLoader.get(context, runtimePrefs)
@@ -656,7 +735,7 @@ object LiveUpdateNotifier {
                 null
             }
         val sourceLargeIcon = resolveSourceLargeIconBitmap(context, source)
-        val preferredLargeIcon = if (shouldTryNavigationArrowIcon) {
+        val preferredLargeIcon = largeIconOverride ?: if (shouldTryNavigationArrowIcon) {
             navigationDrawable?.bitmap ?: sourceLargeIcon
         } else {
             sourceLargeIcon
@@ -664,8 +743,10 @@ object LiveUpdateNotifier {
 
         val appName = resolveAppName(context, sbn.packageName)
         val allowRemoteViewTextFallback = shouldTryNavigationArrowIcon
-        val title = extractTitle(source, appName, allowRemoteViewTextFallback)
-        val text = extractText(source, allowRemoteViewTextFallback)
+        val title = titleOverride?.takeIf { it.isNotBlank() }
+            ?: extractTitle(source, appName, allowRemoteViewTextFallback)
+        val text = textOverride?.takeIf { it.isNotBlank() }
+            ?: extractText(source, allowRemoteViewTextFallback)
         val displayTitle = when (appPresentationOverride.compactTextSource) {
             CompactTextSource.TEXT -> text.ifBlank { title }
             CompactTextSource.TITLE -> title
@@ -735,7 +816,9 @@ object LiveUpdateNotifier {
         copySourceActions(
             source = source,
             builder = builder,
-            maxActions = if (otpOverride != null) MAX_MIRRORED_ACTIONS - 1 else MAX_MIRRORED_ACTIONS
+            maxActions = if (otpOverride != null) MAX_MIRRORED_ACTIONS - 1 else MAX_MIRRORED_ACTIONS,
+            preferMediaControls = preferMediaControls,
+            mediaPlaybackIsPlaying = mediaPlaybackIsPlaying
         )
 
         if (hasProgress) {
@@ -810,7 +893,12 @@ object LiveUpdateNotifier {
         smartShortTextOverride: String?,
         smartRuleId: String? = null,
         otpShortTextOverride: String? = null,
-        allowNavigationIconHeuristics: Boolean = true
+        allowNavigationIconHeuristics: Boolean = true,
+        preferMediaControls: Boolean = false,
+        mediaPlaybackIsPlaying: Boolean? = null,
+        titleOverride: String? = null,
+        textOverride: String? = null,
+        largeIconOverride: Bitmap? = null
     ) {
         try {
             manager.notify(notificationId, promotedNotification)
@@ -825,7 +913,12 @@ object LiveUpdateNotifier {
                 smartRuleId = smartRuleId,
                 requestPromoted = false,
                 otpShortTextOverride = otpShortTextOverride,
-                allowNavigationIconHeuristics = allowNavigationIconHeuristics
+                allowNavigationIconHeuristics = allowNavigationIconHeuristics,
+                preferMediaControls = preferMediaControls,
+                mediaPlaybackIsPlaying = mediaPlaybackIsPlaying,
+                titleOverride = titleOverride,
+                textOverride = textOverride,
+                largeIconOverride = largeIconOverride
             )
             manager.notify(notificationId, fallback)
         }
@@ -2419,20 +2512,117 @@ object LiveUpdateNotifier {
     private fun copySourceActions(
         source: Notification,
         builder: NotificationCompat.Builder,
-        maxActions: Int
+        maxActions: Int,
+        preferMediaControls: Boolean = false,
+        mediaPlaybackIsPlaying: Boolean? = null
     ) {
         val actions = source.actions ?: return
         if (actions.isEmpty()) {
             return
         }
 
-        actions.take(maxActions.coerceAtLeast(0)).forEach { frameworkAction ->
+        val safeMaxActions = maxActions.coerceAtLeast(0)
+        if (safeMaxActions == 0) {
+            return
+        }
+
+        if (preferMediaControls) {
+            val preferredMediaActions = selectPreferredMediaActions(
+                actions = actions.toList(),
+                isPlaying = mediaPlaybackIsPlaying
+            )
+            if (preferredMediaActions.isNotEmpty()) {
+                preferredMediaActions
+                    .take(safeMaxActions)
+                    .forEach { preferredAction ->
+                        val compatAction = toCompatAction(
+                            frameworkAction = preferredAction.action,
+                            titleOverride = preferredAction.shortTitle
+                        ) ?: return@forEach
+                        builder.addAction(compatAction)
+                    }
+                return
+            }
+        }
+
+        actions.take(safeMaxActions).forEach { frameworkAction ->
             val compatAction = toCompatAction(frameworkAction) ?: return@forEach
             builder.addAction(compatAction)
         }
     }
 
-    private fun toCompatAction(frameworkAction: Notification.Action): NotificationCompat.Action? {
+    private fun selectPreferredMediaActions(
+        actions: List<Notification.Action>,
+        isPlaying: Boolean?
+    ): List<MediaPreferredAction> {
+        if (actions.isEmpty()) {
+            return emptyList()
+        }
+
+        val indexed = actions.withIndex()
+            .filter { it.value.actionIntent != null }
+            .toList()
+        if (indexed.isEmpty()) {
+            return emptyList()
+        }
+
+        val usedIndexes = mutableSetOf<Int>()
+
+        fun pickByKeywords(keywords: List<String>): Notification.Action? {
+            val candidate = indexed.firstOrNull { (index, action) ->
+                if (index in usedIndexes) {
+                    return@firstOrNull false
+                }
+                val title = action.title?.toString()?.lowercase(Locale.ROOT).orEmpty()
+                keywords.any(title::contains)
+            } ?: return null
+            usedIndexes += candidate.index
+            return candidate.value
+        }
+
+        val previousAction = pickByKeywords(
+            listOf("previous", "prev", "назад", "пред", "rewind", "⏮")
+        )
+        val pauseAction = pickByKeywords(
+            listOf("pause", "пауза", "⏸")
+        )
+        val playAction = pickByKeywords(
+            listOf("play", "играть", "воспроиз", "resume", "▶", "⏯")
+        )
+        val nextAction = pickByKeywords(
+            listOf("next", "след", "skip", "forward", "⏭")
+        )
+
+        val centerAction = when (isPlaying) {
+            true -> pauseAction ?: playAction
+            false -> playAction ?: pauseAction
+            null -> pauseAction ?: playAction
+        }
+
+        val centerShortTitle = when {
+            centerAction != null && centerAction == playAction -> "Play"
+            centerAction != null && centerAction == pauseAction -> "Pause"
+            isPlaying == false -> "Play"
+            else -> "Pause"
+        }
+
+        val ordered = listOfNotNull(
+            previousAction?.let { MediaPreferredAction(it, "Previous") },
+            centerAction?.let {
+                MediaPreferredAction(
+                    action = it,
+                    shortTitle = centerShortTitle
+                )
+            },
+            nextAction?.let { MediaPreferredAction(it, "Next") }
+        )
+        return if (ordered.size >= 2) ordered else emptyList()
+    }
+
+    private fun toCompatAction(
+        frameworkAction: Notification.Action,
+        titleOverride: String? = null
+    ): NotificationCompat.Action? {
         if (frameworkAction.actionIntent == null) {
             return null
         }
@@ -2441,13 +2631,16 @@ object LiveUpdateNotifier {
             val copied = NotificationCompat.Action.Builder.fromAndroidAction(frameworkAction).build()
             NotificationCompat.Action.Builder(
                 transparentActionIcon,
-                copied.title?.toString()?.takeIf { it.isNotBlank() }
+                titleOverride?.takeIf { it.isNotBlank() }
+                    ?: copied.title?.toString()?.takeIf { it.isNotBlank() }
                     ?: frameworkAction.title?.toString()?.takeIf { it.isNotBlank() }
                     ?: "Action",
                 copied.actionIntent ?: frameworkAction.actionIntent
             ).build()
         } catch (_: Exception) {
-            val title = frameworkAction.title?.toString()?.takeIf { it.isNotBlank() } ?: "Action"
+            val title = titleOverride?.takeIf { it.isNotBlank() }
+                ?: frameworkAction.title?.toString()?.takeIf { it.isNotBlank() }
+                ?: "Action"
             NotificationCompat.Action.Builder(
                 transparentActionIcon,
                 title,
@@ -2547,6 +2740,189 @@ object LiveUpdateNotifier {
         }
         val template = extras.getString("android.template")
         return template?.contains("MediaStyle", ignoreCase = true) == true
+    }
+
+    private fun extractMediaPlaybackSnapshot(
+        context: Context,
+        notification: Notification,
+        sourcePackageName: String
+    ): MediaPlaybackSnapshot? {
+        val sessionToken = extractMediaSessionToken(notification)
+        val mediaController = resolveMediaController(
+            context = context,
+            sessionToken = sessionToken,
+            sourcePackageName = sourcePackageName
+        ) ?: return null
+
+        return try {
+            val playbackState = mediaController.playbackState ?: return null
+            if (playbackState.state == PlaybackState.STATE_STOPPED ||
+                playbackState.state == PlaybackState.STATE_NONE
+            ) {
+                return null
+            }
+
+            val metadata = mediaController.metadata
+            val durationMs =
+                metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.coerceAtLeast(0L) ?: 0L
+            val rawPositionMs = resolvePlaybackStatePositionMs(playbackState).coerceAtLeast(0L)
+            val positionMs = if (durationMs > 0L) {
+                rawPositionMs.coerceIn(0L, durationMs)
+            } else {
+                rawPositionMs
+            }
+            val title = metadata
+                ?.getString(MediaMetadata.METADATA_KEY_TITLE)
+                ?.trim()
+                ?.ifBlank { null }
+            val artist = metadata
+                ?.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                ?.trim()
+                ?.ifBlank { null }
+                ?: metadata
+                    ?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
+                    ?.trim()
+                    ?.ifBlank { null }
+            val albumArt = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+                ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
+
+            MediaPlaybackSnapshot(
+                title = title,
+                artist = artist,
+                albumArt = albumArt,
+                durationMs = durationMs,
+                positionMs = positionMs,
+                isPlaying = playbackState.state == PlaybackState.STATE_PLAYING
+            )
+        } catch (error: Throwable) {
+            Log.w(TAG, "Failed to resolve media playback snapshot", error)
+            null
+        }
+    }
+
+    private fun resolveMediaController(
+        context: Context,
+        sessionToken: MediaSession.Token?,
+        sourcePackageName: String
+    ): MediaController? {
+        if (sessionToken != null) {
+            try {
+                return MediaController(context, sessionToken)
+            } catch (_: Throwable) {
+            }
+        }
+
+        return try {
+            val mediaSessionManager =
+                context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
+                    ?: return null
+            val componentName = ComponentName(
+                context,
+                LiveUpdateNotificationListenerService::class.java
+            )
+            val activeControllers = mediaSessionManager.getActiveSessions(componentName)
+            activeControllers.firstOrNull { it.packageName == sourcePackageName }
+                ?: activeControllers.firstOrNull()
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun extractMediaSessionToken(notification: Notification): MediaSession.Token? {
+        val extras = notification.extras
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                extras.getParcelable(Notification.EXTRA_MEDIA_SESSION, MediaSession.Token::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                extras.getParcelable(Notification.EXTRA_MEDIA_SESSION) as? MediaSession.Token
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun resolvePlaybackStatePositionMs(playbackState: PlaybackState): Long {
+        val basePositionMs = playbackState.position.coerceAtLeast(0L)
+        if (playbackState.state != PlaybackState.STATE_PLAYING) {
+            return basePositionMs
+        }
+
+        val lastUpdateElapsedMs = playbackState.lastPositionUpdateTime
+        if (lastUpdateElapsedMs <= 0L) {
+            return basePositionMs
+        }
+
+        val elapsedSinceUpdateMs =
+            (SystemClock.elapsedRealtime() - lastUpdateElapsedMs).coerceAtLeast(0L)
+        val speed = playbackState.playbackSpeed.takeIf { it > 0f } ?: 1f
+        return (basePositionMs + (elapsedSinceUpdateMs * speed)).toLong()
+    }
+
+    private fun MediaPlaybackSnapshot.toProgressOverride(): ProgressOverride? {
+        if (durationMs <= 0L) {
+            return null
+        }
+        val max = durationMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt().coerceAtLeast(1)
+        val value = positionMs.coerceIn(0L, max.toLong()).toInt()
+        return ProgressOverride(value = value, max = max)
+    }
+
+    private fun buildMediaPlaybackShortText(snapshot: MediaPlaybackSnapshot): String {
+        if (!snapshot.title.isNullOrBlank()) {
+            return snapshot.title
+        }
+        if (!snapshot.artist.isNullOrBlank()) {
+            return snapshot.artist
+        }
+        if (snapshot.durationMs > 0L) {
+            return formatMillisecondsAsClock(snapshot.positionMs)
+        }
+        return if (snapshot.isPlaying) "PLAY" else "PAUSE"
+    }
+
+    private fun formatMillisecondsAsClock(milliseconds: Long): String {
+        val totalSeconds = (milliseconds / 1_000L).coerceAtLeast(0L)
+        val hours = totalSeconds / 3_600L
+        val minutes = (totalSeconds % 3_600L) / 60L
+        val seconds = totalSeconds % 60L
+        return if (hours > 0L) {
+            String.format(Locale.ROOT, "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            String.format(Locale.ROOT, "%d:%02d", minutes, seconds)
+        }
+    }
+
+    private fun detectAospLikeDevice(): Boolean {
+        val manufacturer = Build.MANUFACTURER.orEmpty()
+        val brand = Build.BRAND.orEmpty()
+        val marketName = DeviceProps.marketName()
+        val model = Build.MODEL.orEmpty()
+        val product = Build.PRODUCT.orEmpty()
+        val fingerprint = Build.FINGERPRINT.orEmpty()
+        val display = Build.DISPLAY.orEmpty()
+        val customRomMarkers = listOf(
+            "lineage",
+            "evolution",
+            "evox",
+            "crdroid",
+            "pixelos",
+            "arrowos",
+            "risingos",
+            "yaap",
+            "derpfest",
+            "aosp"
+        )
+
+        val pixelProbe = "$manufacturer $brand $marketName $model".lowercase(Locale.ROOT)
+        val all = "$manufacturer $brand $marketName $model $product $fingerprint $display"
+            .lowercase(Locale.ROOT)
+        val isPixel = pixelProbe.contains("google") || pixelProbe.contains("pixel")
+
+        return isPixel ||
+                all.contains("nothing") ||
+                all.contains("motorola") ||
+                customRomMarkers.any(all::contains)
     }
 
     private fun resolveAppName(context: Context, packageName: String): String {
@@ -2895,6 +3271,20 @@ object LiveUpdateNotifier {
     private data class TextProgressMatch(
         val percent: Int,
         val shortText: String
+    )
+
+    private data class MediaPlaybackSnapshot(
+        val title: String?,
+        val artist: String?,
+        val albumArt: Bitmap?,
+        val durationMs: Long,
+        val positionMs: Long,
+        val isPlaying: Boolean
+    )
+
+    private data class MediaPreferredAction(
+        val action: Notification.Action,
+        val shortTitle: String
     )
 
     private data class OtpMatch(

@@ -59,6 +59,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool _onlyWithProgress = true;
   bool _textProgressEnabled = true;
   bool _smartDetectionEnabled = true;
+  bool _smartMediaPlaybackEnabled = false;
   bool _smartNavigationEnabled = true;
   bool _smartWeatherEnabled = true;
   bool _smartExternalDevicesEnabled = true;
@@ -210,6 +211,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           await LiveBridgePlatform.getTextProgressEnabled();
       final bool smartDetectionEnabled =
           await LiveBridgePlatform.getSmartStatusDetectionEnabled();
+      final bool smartMediaPlaybackEnabled =
+          await LiveBridgePlatform.getSmartMediaPlaybackEnabled();
       final bool smartNavigationEnabled =
           await LiveBridgePlatform.getSmartNavigationEnabled();
       final bool smartWeatherEnabled =
@@ -301,6 +304,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         _onlyWithProgress = onlyWithProgress;
         _textProgressEnabled = textProgressEnabled;
         _smartDetectionEnabled = smartDetectionEnabled;
+        _smartMediaPlaybackEnabled = smartMediaPlaybackEnabled;
         _smartNavigationEnabled = smartNavigationEnabled;
         _smartWeatherEnabled = smartWeatherEnabled;
         _smartExternalDevicesEnabled = smartExternalDevicesEnabled;
@@ -751,6 +755,12 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     HapticFeedback.selectionClick();
     setState(() => _smartDetectionEnabled = value);
     await LiveBridgePlatform.setSmartStatusDetectionEnabled(value);
+  }
+
+  Future<void> _setSmartMediaPlayback(bool value) async {
+    HapticFeedback.selectionClick();
+    setState(() => _smartMediaPlaybackEnabled = value);
+    await LiveBridgePlatform.setSmartMediaPlaybackEnabled(value);
   }
 
   Future<void> _setSmartNavigation(bool value) async {
@@ -1219,6 +1229,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         'only_with_progress': _onlyWithProgress,
         'text_progress_enabled': _textProgressEnabled,
         'smart_detection_enabled': _smartDetectionEnabled,
+        'smart_media_playback_enabled': _smartMediaPlaybackEnabled,
         'smart_navigation_enabled': _smartNavigationEnabled,
         'smart_weather_enabled': _smartWeatherEnabled,
         'smart_external_devices_enabled': _smartExternalDevicesEnabled,
@@ -2168,6 +2179,26 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
       icon: Icons.auto_awesome_rounded,
       child: Column(
         children: <Widget>[
+          if (_isAospDevice) ...<Widget>[
+            SwitchListTile.adaptive(
+              value: _smartMediaPlaybackEnabled,
+              onChanged: _setSmartMediaPlayback,
+              title: Text(
+                s.smartMediaPlaybackTitle,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                s.smartMediaPlaybackSubtitle,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+              contentPadding: EdgeInsets.zero,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 8),
+          ],
           SwitchListTile.adaptive(
             value: _smartDetectionEnabled,
             onChanged: _setSmartDetection,

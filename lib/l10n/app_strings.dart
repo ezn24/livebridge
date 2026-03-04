@@ -253,6 +253,11 @@ class AppStrings {
   String get smartDetectionSubtitle => isRu
       ? 'Преобразует текстовые статусы еды, такси и навигации в единый Live-прогресс.'
       : 'Converts text-only food/taxi/navigation status notifications into a single Live.';
+  String get smartMediaPlaybackTitle =>
+      isRu ? 'Media Playback' : 'Media Playback';
+  String get smartMediaPlaybackSubtitle => isRu
+      ? 'Преобразует уведомления медиаплеера в Live. Доступно только на AOSP.'
+      : 'Converts media playback notifications into Live. Available only on AOSP.';
   String get smartNavigationTitle =>
       isRu ? 'Навигация (карты)' : 'Navigation (maps)';
   String get smartNavigationSubtitle => isRu

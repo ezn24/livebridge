@@ -85,3 +85,8 @@ For stable behavior, the app usually needs:
 
 - Feel free to open issues or pull requests. LiveBridge is under active development
 - Testing on multiple OEMs is highly recommended
+
+## Credits
+
+- [D4vidDf](https://github.com/D4vidDf/HyperIsland-ToolKit) for the Hyper Island toolkit
+- [RossSihovsk](https://github.com/RossSihovsk/LiveMedia) for the Live Media
