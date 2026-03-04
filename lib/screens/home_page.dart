@@ -27,7 +27,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   static const String _projectGithubReleasesUrl =
       'https://github.com/appsfolder/livebridge/releases';
   static const String _projectGithubBugReportUrl =
-      'https://github.com/appsfolder/livebridge/issues/new?template=bug_report.md&title=%5BBug%5D%20';
+      'https://github.com/appsfolder/livebridge/issues/new?template=bug_report.yml&title=%5BBug%5D%20';
   static const String _latestReleaseApiUrl =
       'https://api.github.com/repos/appsfolder/livebridge/releases/latest';
   static const String _dictionaryRawUrl =
