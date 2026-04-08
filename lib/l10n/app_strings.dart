@@ -143,6 +143,9 @@ class AppStrings {
       : 'Trim island text to 7 characters for cleaner rendering on AOSP ROMs.';
   String get appPresentationSettings =>
       isRu ? 'Поведение приложений' : 'Per-app behavior';
+  String get appPresentationSubtitle => isRu
+      ? 'Настройте источник текста и иконки отдельно для разных приложений.'
+      : 'Choose text and icon behavior separately for different applications.';
   String get appPresentationScreenTitle =>
       isRu ? 'Поведение приложений' : 'Per-app behavior';
   String get appPresentationLoadFailed => isRu

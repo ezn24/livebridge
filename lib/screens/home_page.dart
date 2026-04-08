@@ -905,6 +905,10 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     );
   }
 
+  Future<void> _openDefaultAppPresentationBehavior() async {
+    await showDefaultAppPresentationBehaviorEditor(context);
+  }
+
   Future<bool> _ensureAppListAccess() async {
     final bool alreadyGranted =
         await LiveBridgePlatform.getAppListAccessGranted();
@@ -1323,6 +1327,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
       'smart',
       'otp',
       'experimental',
+      'app_presentation',
       'settings',
     };
     return raw
@@ -1414,6 +1419,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                     _buildOtpCard(s),
                     const SizedBox(height: 24),
                     _buildExperimentalCard(s),
+                    const SizedBox(height: 24),
+                    _buildAppPresentationCard(s),
                     const SizedBox(height: 24),
                     _buildSettingsCard(s),
                   ],
@@ -1655,15 +1662,6 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
               activeThumbColor: colorScheme.primary,
             ),
           ],
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _openAppPresentationSettings,
-              icon: const Icon(Icons.tune_rounded, size: 18),
-              label: Text(s.appPresentationSettings),
-            ),
-          ),
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
@@ -1795,6 +1793,86 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
               onPressed: _openBugReport,
               icon: const Icon(Icons.bug_report_rounded, size: 18),
               label: Text(s.reportBug),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppPresentationCard(AppStrings s) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return _sectionPanel(
+      sectionId: 'app_presentation',
+      title: s.appPresentationSettings,
+      icon: Icons.tune_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            s.appPresentationSubtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _openDefaultAppPresentationBehavior,
+              child: Ink(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.38),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.auto_fix_high_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        s.appPresentationDefaultSummary,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _openAppPresentationSettings,
+              icon: const Icon(Icons.tune_rounded, size: 18),
+              label: Text(s.appPresentationSettings),
             ),
           ),
         ],

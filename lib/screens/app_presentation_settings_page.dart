@@ -31,6 +31,173 @@ class _ParsedAppPresentationOverrides {
   final Map<String, AppPresentationOverride> packageOverrides;
 }
 
+Future<void> showDefaultAppPresentationBehaviorEditor(
+  BuildContext context,
+) async {
+  LiveBridgeHaptics.openSurface();
+
+  try {
+    final String raw = await LiveBridgePlatform.getAppPresentationOverrides();
+    final _ParsedAppPresentationOverrides parsed =
+        _parseStandaloneAppPresentationOverrides(raw);
+    if (!context.mounted) {
+      return;
+    }
+
+    final AppStrings s = AppStrings.of(context);
+    AppPresentationOverride currentDefault = parsed.defaultOverride;
+    Map<String, AppPresentationOverride> currentOverrides =
+        Map<String, AppPresentationOverride>.from(parsed.packageOverrides);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (BuildContext context) => _AppPresentationEditorSheet(
+        app: InstalledApp(
+          packageName: '',
+          label: s.appPresentationDefaultSummary,
+        ),
+        initialValue: currentDefault,
+        resetValue: const AppPresentationOverride(),
+        showResetAction: false,
+        onChanged: (AppPresentationOverride updated) {
+          final Map<String, AppPresentationOverride> next =
+              <String, AppPresentationOverride>{};
+          for (final MapEntry<String, AppPresentationOverride> entry
+              in currentOverrides.entries) {
+            if (!_isSameStandaloneAppPresentationOverride(
+              entry.value,
+              updated,
+            )) {
+              next[entry.key] = entry.value;
+            }
+          }
+          currentDefault = updated;
+          currentOverrides = next;
+          unawaited(
+            _persistStandaloneAppPresentationOverrides(
+              context,
+              defaultOverride: updated,
+              overrides: next,
+            ),
+          );
+        },
+      ),
+    );
+  } catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    _showStandaloneAppPresentationSnack(
+      context,
+      AppStrings.of(context).appPresentationLoadFailed,
+    );
+  }
+}
+
+bool _isSameStandaloneAppPresentationOverride(
+  AppPresentationOverride a,
+  AppPresentationOverride b,
+) {
+  return a.compactTextSource == b.compactTextSource &&
+      a.iconSource == b.iconSource;
+}
+
+_ParsedAppPresentationOverrides _parseStandaloneAppPresentationOverrides(
+  String raw,
+) {
+  final String normalized = raw.trim();
+  if (normalized.isEmpty) {
+    return const _ParsedAppPresentationOverrides(
+      defaultOverride: AppPresentationOverride(),
+      packageOverrides: <String, AppPresentationOverride>{},
+    );
+  }
+
+  final dynamic decoded = jsonDecode(normalized);
+  if (decoded is! Map) {
+    return const _ParsedAppPresentationOverrides(
+      defaultOverride: AppPresentationOverride(),
+      packageOverrides: <String, AppPresentationOverride>{},
+    );
+  }
+
+  AppPresentationOverride defaultOverride = const AppPresentationOverride();
+  if (decoded[_defaultAppPresentationKey] is Map) {
+    defaultOverride = AppPresentationOverride.fromJsonEntry(
+      Map<String, dynamic>.from(decoded[_defaultAppPresentationKey] as Map),
+    );
+  }
+
+  final Map<String, AppPresentationOverride> values =
+      <String, AppPresentationOverride>{};
+  for (final MapEntry<dynamic, dynamic> entry in decoded.entries) {
+    final String packageName = (entry.key as String? ?? '')
+        .trim()
+        .toLowerCase();
+    if (packageName.isEmpty ||
+        packageName == _defaultAppPresentationKey ||
+        entry.value is! Map) {
+      continue;
+    }
+    final AppPresentationOverride parsed =
+        AppPresentationOverride.fromJsonEntry(
+          Map<String, dynamic>.from(entry.value as Map),
+        );
+    if (!_isSameStandaloneAppPresentationOverride(parsed, defaultOverride)) {
+      values[packageName] = parsed;
+    }
+  }
+
+  return _ParsedAppPresentationOverrides(
+    defaultOverride: defaultOverride,
+    packageOverrides: values,
+  );
+}
+
+String _encodeStandaloneAppPresentationOverrides(
+  AppPresentationOverride defaultOverride,
+  Map<String, AppPresentationOverride> values,
+) {
+  final Map<String, dynamic> payload = <String, dynamic>{};
+  if (!defaultOverride.isDefault) {
+    payload[_defaultAppPresentationKey] = defaultOverride.toJsonEntry();
+  }
+  for (final String packageName in values.keys.toList()..sort()) {
+    final AppPresentationOverride? value = values[packageName];
+    if (value != null &&
+        !_isSameStandaloneAppPresentationOverride(value, defaultOverride)) {
+      payload[packageName] = value.toJsonEntry();
+    }
+  }
+  return jsonEncode(payload);
+}
+
+Future<void> _persistStandaloneAppPresentationOverrides(
+  BuildContext context, {
+  required AppPresentationOverride defaultOverride,
+  required Map<String, AppPresentationOverride> overrides,
+}) async {
+  final bool saved = await LiveBridgePlatform.setAppPresentationOverrides(
+    _encodeStandaloneAppPresentationOverrides(defaultOverride, overrides),
+  );
+  if (!saved && context.mounted) {
+    _showStandaloneAppPresentationSnack(
+      context,
+      AppStrings.of(context).appPresentationSaveFailed,
+    );
+  }
+}
+
+void _showStandaloneAppPresentationSnack(BuildContext context, String value) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
+}
+
 class AppPresentationSettingsPage extends StatefulWidget {
   const AppPresentationSettingsPage({super.key});
 
