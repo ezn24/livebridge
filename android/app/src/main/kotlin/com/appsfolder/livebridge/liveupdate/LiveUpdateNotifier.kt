@@ -873,6 +873,7 @@ object LiveUpdateNotifier {
                 ticker = hyperTicker,
                 progressPercent = determinateProgressPercent,
                 largeIcon = preferredLargeIcon,
+                fallbackSmallIcon = preferredSmallIcon,
                 sourceActions = source.actions
             )
         }
