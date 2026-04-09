@@ -29,6 +29,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
       'https://github.com/appsfolder/livebridge';
   static const String _projectDownloadPageUrl =
       'https://appsfolder.github.io/livebridge/';
+  static const String _projectDownloadSectionUrl =
+      'https://appsfolder.github.io/livebridge/#download';
   static const String _projectGithubBugReportUrl =
       'https://github.com/appsfolder/livebridge/issues/new/choose?template=bug_report.yml';
   static const String _latestReleaseApiUrl =
@@ -247,8 +249,6 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           await LiveBridgePlatform.hasCustomParserDictionary();
       final bool backgroundWarningDismissed =
           await LiveBridgePlatform.getBackgroundWarningDismissed();
-      final bool samsungWarningDismissed =
-          await LiveBridgePlatform.getSamsungWarningDismissed();
       final bool hasExpandedSectionsState =
           await LiveBridgePlatform.hasExpandedSectionsState();
       final String expandedSectionsRaw = hasExpandedSectionsState
@@ -327,8 +327,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
             !deviceInfo.isPixel &&
             !deviceInfo.isSamsung &&
             !backgroundWarningDismissed;
-        _showSamsungDeveloperWarning =
-            deviceInfo.isSamsung && !samsungWarningDismissed;
+        _showSamsungDeveloperWarning = deviceInfo.isSamsung;
         _deviceLabelForWarning = deviceInfo.label;
         _packageMode = packageMode;
         _otpPackageMode = otpPackageMode;
@@ -1318,16 +1317,19 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     setState(() => _showBackgroundWarning = false);
   }
 
-  Future<void> _hideSamsungWarning() async {
-    LiveBridgeHaptics.selection();
-    await LiveBridgePlatform.setSamsungWarningDismissed(true);
-    if (!mounted) return;
-    setState(() => _showSamsungDeveloperWarning = false);
-  }
-
   void _snack(String value) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
+  }
+
+  Future<void> _openSamsungDownloads() async {
+    LiveBridgeHaptics.openSurface();
+    final bool opened = await _launchGithubUrl(
+      Uri.parse(_projectDownloadSectionUrl),
+    );
+    if (!opened && mounted) {
+      _snack(AppStrings.of(context).githubOpenFailed);
+    }
   }
 
   Set<String> _parseExpandedSections(String raw) {
@@ -1999,11 +2001,22 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
 
   Widget _buildSamsungDeveloperWarning(AppStrings s) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final bool isDark = colorScheme.brightness == Brightness.dark;
+    const Color accent = Color(0xFFF59E0B);
+    final Color background = Color.alphaBlend(
+      accent.withValues(alpha: isDark ? 0.2 : 0.16),
+      colorScheme.surface,
+    );
+    final Color border = accent.withValues(alpha: isDark ? 0.38 : 0.28);
+    final Color accentText = isDark
+        ? const Color(0xFFFFD791)
+        : const Color(0xFF8B4A00);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer.withValues(alpha: 0.5),
+        color: background,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2011,10 +2024,10 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: colorScheme.error.withValues(alpha: 0.1),
+              color: accent.withValues(alpha: isDark ? 0.18 : 0.14),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.warning_amber_rounded, color: colorScheme.error),
+            child: Icon(Icons.download_rounded, color: accentText),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -2025,6 +2038,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                   s.samsungWarningTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: accentText,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -2032,18 +2046,22 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                   s.samsungWarningBody,
                   style: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.copyWith(height: 1.4),
+                  ).textTheme.bodySmall?.copyWith(
+                    height: 1.4,
+                    color: colorScheme.onSurface.withValues(alpha: 0.82),
+                  ),
                 ),
                 const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: _hideSamsungWarning,
-                    icon: const Icon(Icons.visibility_off_rounded, size: 18),
-                    label: Text(s.hideWarningBanner),
-                    style: TextButton.styleFrom(
-                      foregroundColor: colorScheme.error,
-                      visualDensity: VisualDensity.compact,
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _openSamsungDownloads,
+                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                    label: Text(s.samsungWarningAction),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),

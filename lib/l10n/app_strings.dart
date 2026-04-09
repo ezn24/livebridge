@@ -88,10 +88,12 @@ class AppStrings {
       ? 'Для $deviceLabel нужно вручную разрешить автозапуск и работу без ограничений в фоне, иначе Live Updates могут не появляться или зависать.'
       : 'On $deviceLabel, allow autostart and unrestricted background activity, otherwise Live Updates may stop appearing or freeze.';
   String get samsungWarningTitle =>
-      isRu ? 'Важно для Samsung' : 'Important for Samsung';
+      isRu ? 'Для Samsung есть версия лучше' : 'A better build is available for Samsung';
   String get samsungWarningBody => isRu
-      ? 'Для Samsung не нужно включать Live Updates в приложении. Но в параметрах разработчика обязательно включите "Отображение живых уведомлений для всех приложений".'
-      : 'On Samsung, enabling in-app Live Updates is not required. But in Developer options, enable "Live notifications for all apps".';
+      ? 'Для Samsung доступна специальная сборка LiveBridge с улучшенной поддержкой Samsung-функций. Лучше установить ее вместо обычной версии.'
+      : 'There is a dedicated LiveBridge build for Samsung devices with improved Samsung-specific support. It is recommended over the regular build.';
+  String get samsungWarningAction =>
+      isRu ? 'Открыть загрузки' : 'Get Samsung build';
 
   String get accessTitle => isRu ? 'Разрешения' : 'Permissions';
   String get accessSubtitle => isRu
@@ -307,9 +309,8 @@ class AppStrings {
       ? 'Если в тексте есть %, и это не скидка/акция, считать как прогресс и обновлять остров.'
       : 'If text contains % and it is not discount-related, treat it as progress and update island.';
 
-  String get blockedTitle => isRu
-      ? 'Пожалуйста, купите нормальный смартфон'
-      : 'Buy a proper phone first';
+  String get blockedTitle =>
+      isRu ? 'AOSP поддерживается частично' : 'AOSP is partially supported';
   String get blockedSubtitle => isRu
       ? 'LiveBridge плохо работает на устройствах с AOSP. Можете продолжить, но за последствия я не отвечаю.'
       : 'LiveBridge is not designed for AOSP. You can continue, but i am not responsible for any bugs.';
