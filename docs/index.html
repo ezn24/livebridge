@@ -972,10 +972,15 @@
           </div>
 
           <div class="download-grid">
-            <div class="build-card recommended">
+            <div class="build-card recommended" data-build-key="armv8a">
               <div class="build-head">
                 <h3>Modern Android</h3>
-                <span class="build-tag">Recommended</span>
+                <span
+                  class="build-tag"
+                  data-build-tag="armv8a"
+                  data-default-tag="Most devices"
+                  data-recommended-tag="Recommended"
+                >Recommended</span>
               </div>
               <div class="build-meta">
                 <div class="meta-box">
@@ -993,13 +998,18 @@
               </div>
             </div>
 
-            <div class="build-card">
+            <div class="build-card" data-build-key="samsung">
               <div class="build-head">
                 <div class="build-title-row">
                   <h3>Now Bar version for</h3>
                   <img class="samsung-logo-img" data-icon="samsung-logo" alt="Samsung logo" />
                 </div>
-                <span class="build-tag">Samsung-only</span>
+                <span
+                  class="build-tag"
+                  data-build-tag="samsung"
+                  data-default-tag="Samsung-only"
+                  data-recommended-tag="Recommended"
+                >Samsung-only</span>
               </div>
               <div class="build-meta">
                 <div class="meta-box">
@@ -1017,10 +1027,15 @@
               </div>
             </div>
 
-            <div class="build-card">
+            <div class="build-card" data-build-key="universal">
               <div class="build-head">
                 <h3>Not Sure?</h3>
-                <span class="build-tag">For everyone</span>
+                <span
+                  class="build-tag"
+                  data-build-tag="universal"
+                  data-default-tag="For everyone"
+                  data-recommended-tag="Recommended"
+                >For everyone</span>
               </div>
               <div class="build-meta">
                 <div class="meta-box">
@@ -1038,10 +1053,15 @@
               </div>
             </div>
 
-            <div class="build-card">
+            <div class="build-card" data-build-key="armv7a">
               <div class="build-head">
                 <h3>Older Phone</h3>
-                <span class="build-tag">Legacy CPU</span>
+                <span
+                  class="build-tag"
+                  data-build-tag="armv7a"
+                  data-default-tag="Legacy CPU"
+                  data-recommended-tag="Recommended"
+                >Legacy CPU</span>
               </div>
               <div class="build-meta">
                 <div class="meta-box">
@@ -1093,6 +1113,7 @@
       const latestReleasePage = `https://github.com/${owner}/${repo}/releases/latest`;
       const rawAssetBase = `https://raw.githubusercontent.com/${owner}/${repo}/main/assets`;
       const numberFormat = new Intl.NumberFormat("en-US");
+      const defaultRecommendedBuild = "armv8a";
 
       const builds = [
         {
@@ -1127,6 +1148,41 @@
 
       function findBuildAsset(assets, matchers) {
         return assets.find((asset) => assetMatches(asset.name, matchers));
+      }
+
+      function looksLikeSamsungDevice() {
+        const ua = navigator.userAgent || "";
+        const platform = navigator.userAgentData?.platform || "";
+        const vendor = navigator.vendor || "";
+        const brands = Array.isArray(navigator.userAgentData?.brands)
+          ? navigator.userAgentData.brands.map((item) => item.brand).join(" ")
+          : "";
+        const signature = `${ua} ${platform} ${vendor} ${brands}`;
+
+        return /Android/i.test(signature) &&
+          /SamsungBrowser|Samsung|SM-[A-Z0-9]+|GT-[A-Z0-9]+|SCH-[A-Z0-9]+|Galaxy/i.test(signature);
+      }
+
+      function applyRecommendedBuild(buildKey) {
+        document.querySelectorAll(".build-card[data-build-key]").forEach((card) => {
+          const key = card.getAttribute("data-build-key");
+          const isRecommended = key === buildKey;
+
+          card.classList.toggle("recommended", isRecommended);
+
+          const tag = card.querySelector("[data-build-tag]");
+          if (tag) {
+            const defaultTag = tag.getAttribute("data-default-tag") || tag.textContent || "";
+            const recommendedTag = tag.getAttribute("data-recommended-tag") || "Recommended";
+            tag.textContent = isRecommended ? recommendedTag : defaultTag;
+          }
+
+          const button = card.querySelector(".build-footer .btn");
+          if (button) {
+            button.classList.toggle("btn-filled", isRecommended);
+            button.classList.toggle("btn-outlined", !isRecommended);
+          }
+        });
       }
 
       function setBuildCardState(build, latestAsset, totalDownloadsForBuild) {
@@ -1239,6 +1295,12 @@
             bannerCopyEl.textContent = `${numberFormat.format(latestDownloads)} downloads in the latest release, published ${publishedAt}.`;
           }
 
+          const hasSamsungBuild = Boolean(findBuildAsset(latest.assets || [], ["-samsung.apk"]));
+          const recommendedBuild = looksLikeSamsungDevice() && hasSamsungBuild
+            ? "samsung"
+            : defaultRecommendedBuild;
+          applyRecommendedBuild(recommendedBuild);
+
           for (const build of builds) {
             const latestAsset = findBuildAsset(latest.assets || [], build.matchers);
             const totalDownloadsForBuild = publishedReleases.reduce((total, release) => {
@@ -1281,6 +1343,7 @@
 
       hydrateThemeAwareScreenshots();
       hydrateStaticIcons();
+      applyRecommendedBuild(looksLikeSamsungDevice() ? "samsung" : defaultRecommendedBuild);
       loadReleaseData();
     </script>
   </body>
