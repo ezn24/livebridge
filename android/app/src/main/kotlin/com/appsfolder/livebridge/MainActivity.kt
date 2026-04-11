@@ -382,6 +382,14 @@ class MainActivity : FlutterActivity() {
                 res.success(true)
             }
 
+            "getSmartExternalDevicesIgnoreDebugging" -> res.success(
+                prefs.getSmartExternalDevicesIgnoreDebugging()
+            )
+            "setSmartExternalDevicesIgnoreDebugging" -> {
+                prefs.setSmartExternalDevicesIgnoreDebugging(call.argument<Boolean>("value") ?: true)
+                res.success(true)
+            }
+
             "getSmartVpnEnabled" -> res.success(prefs.getSmartVpnEnabled())
             "setSmartVpnEnabled" -> {
                 prefs.setSmartVpnEnabled(call.argument<Boolean>("value") ?: true)

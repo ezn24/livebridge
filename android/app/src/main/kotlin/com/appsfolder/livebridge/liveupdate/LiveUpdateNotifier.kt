@@ -53,8 +53,8 @@ object LiveUpdateNotifier {
     private const val SMART_ISLAND_TOKEN_MAX_LENGTH = 20
 
     private val OTP_CODE_LENGTH = 4..8
-    private val weatherHighLowPattern = Regex(
-        """\bhighs?\s+([+\-−]?\d{1,3})\s*(?:°\s*(?:c|f|с|ф)?|℃|℉)?(?:\s*(?:to|-|–|—)\s*[+\-−]?\d{1,3}\s*(?:°\s*(?:c|f|с|ф)?|℃|℉)?)?[^\n]{0,40}?\blows?\s+([+\-−]?\d{1,3})\s*(?:°\s*(?:c|f|с|ф)?|℃|℉)?""",
+    private val externalDeviceDebuggingPattern = Regex(
+        """(\badb\b|android\s+debug\s+bridge|usb\s+debug(?:ging)?|wireless\s+debug(?:ging)?|\bdebug(?:ging|ger)?\b|developer\s+options?|usb[-\s]?отладк\p{L}*|беспровод\p{L}*\s+отладк\p{L}*|отладк\p{L}*|параметр\p{L}*\s+разработчик\p{L}*)""",
         setOf(RegexOption.IGNORE_CASE)
     )
     private val weatherCelsiusPattern = Regex("""(?:°\s*[cс]|℃)""", setOf(RegexOption.IGNORE_CASE))
@@ -229,6 +229,7 @@ object LiveUpdateNotifier {
                     navigationEnabled = prefs.getSmartNavigationEnabled(),
                     weatherEnabled = prefs.getSmartWeatherEnabled(),
                     externalDevicesEnabled = prefs.getSmartExternalDevicesEnabled(),
+                    externalDevicesIgnoreDebugging = prefs.getSmartExternalDevicesIgnoreDebugging(),
                     vpnEnabled = prefs.getSmartVpnEnabled(),
                     hasNativeProgress = hasNativeProgress
                 )
@@ -937,6 +938,7 @@ object LiveUpdateNotifier {
         navigationEnabled: Boolean,
         weatherEnabled: Boolean,
         externalDevicesEnabled: Boolean,
+        externalDevicesIgnoreDebugging: Boolean,
         vpnEnabled: Boolean,
         hasNativeProgress: Boolean
     ): SmartStageMatch? {
@@ -972,6 +974,12 @@ object LiveUpdateNotifier {
                 continue
             }
             if (rule.id == "external_device" && !externalDevicesEnabled) {
+                continue
+            }
+            if (rule.id == "external_device" &&
+                externalDevicesIgnoreDebugging &&
+                isExternalDeviceDebuggingNotification(combinedText)
+            ) {
                 continue
             }
             if (rule.id == "vpn" && !vpnEnabled) {
@@ -1038,6 +1046,10 @@ object LiveUpdateNotifier {
         }
 
         return null
+    }
+
+    private fun isExternalDeviceDebuggingNotification(text: String): Boolean {
+        return externalDeviceDebuggingPattern.containsMatchIn(text)
     }
 
     private fun detectWeatherSmartStage(
@@ -1670,8 +1682,6 @@ object LiveUpdateNotifier {
         combinedText: String,
         parserDictionary: LiveParserDictionary
     ): String? {
-        extractWeatherHighLowTemperatureSummary(combinedText, parserDictionary)?.let { return it }
-
         val match = parserDictionary.weatherTemperaturePattern.find(combinedText) ?: return null
         val rawNumber = normalizeWeatherTemperatureValue(match.groupValues.getOrNull(1))
         if (rawNumber.isBlank()) {
@@ -1686,27 +1696,6 @@ object LiveUpdateNotifier {
             "$conditionEmoji $baseTemperature"
         } else {
             baseTemperature
-        }
-    }
-
-    private fun extractWeatherHighLowTemperatureSummary(
-        combinedText: String,
-        parserDictionary: LiveParserDictionary
-    ): String? {
-        val match = weatherHighLowPattern.find(combinedText) ?: return null
-        val high = normalizeWeatherTemperatureValue(match.groupValues.getOrNull(1))
-        val low = normalizeWeatherTemperatureValue(match.groupValues.getOrNull(2))
-        if (high.isBlank() || low.isBlank()) {
-            return null
-        }
-
-        val unit = inferWeatherTemperatureUnit(match.value) ?: inferWeatherTemperatureUnit(combinedText)
-        val summary = "${formatWeatherTemperature(high, unit)} / ${formatWeatherTemperature(low, unit)}"
-        val conditionEmoji = extractWeatherConditionEmoji(combinedText, parserDictionary)
-        return if (conditionEmoji != null) {
-            "$conditionEmoji $summary"
-        } else {
-            summary
         }
     }
 

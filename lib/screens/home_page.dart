@@ -39,7 +39,9 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
       'https://raw.githubusercontent.com/appsfolder/livebridge/refs/heads/main/android/app/src/main/assets/liveupdate_dictionary.json';
   static const bool _dictionaryAutoSyncEnabled = false;
   static const Duration _updateCheckInterval = Duration(hours: 6);
+  static const String _expandableSettingNativeProgress = 'native_progress';
   static const String _expandableSettingNetworkSpeed = 'network_speed';
+  static const String _expandableSettingExternalDevices = 'external_devices';
   static const int _networkSpeedThresholdStepBytesPerSecond = 8 * 1024;
   static const int _networkSpeedThresholdMaxBytesPerSecond = 1024 * 1024;
 
@@ -75,6 +77,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool _smartNavigationEnabled = true;
   bool _smartWeatherEnabled = true;
   bool _smartExternalDevicesEnabled = true;
+  bool _smartExternalDevicesIgnoreDebugging = true;
   bool _smartVpnEnabled = true;
   bool _otpDetectionEnabled = true;
   bool _otpAutoCopyEnabled = false;
@@ -240,6 +243,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           await LiveBridgePlatform.getSmartWeatherEnabled();
       final bool smartExternalDevicesEnabled =
           await LiveBridgePlatform.getSmartExternalDevicesEnabled();
+      final bool smartExternalDevicesIgnoreDebugging =
+          await LiveBridgePlatform.getSmartExternalDevicesIgnoreDebugging();
       final bool smartVpnEnabled =
           await LiveBridgePlatform.getSmartVpnEnabled();
       final bool otpDetectionEnabled =
@@ -336,6 +341,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         _smartNavigationEnabled = smartNavigationEnabled;
         _smartWeatherEnabled = smartWeatherEnabled;
         _smartExternalDevicesEnabled = smartExternalDevicesEnabled;
+        _smartExternalDevicesIgnoreDebugging =
+            smartExternalDevicesIgnoreDebugging;
         _smartVpnEnabled = smartVpnEnabled;
         _otpDetectionEnabled = otpDetectionEnabled;
         _otpAutoCopyEnabled = otpAutoCopyEnabled;
@@ -838,6 +845,12 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     LiveBridgeHaptics.toggle(value);
     setState(() => _smartExternalDevicesEnabled = value);
     await LiveBridgePlatform.setSmartExternalDevicesEnabled(value);
+  }
+
+  Future<void> _setSmartExternalDevicesIgnoreDebugging(bool value) async {
+    LiveBridgeHaptics.toggle(value);
+    setState(() => _smartExternalDevicesIgnoreDebugging = value);
+    await LiveBridgePlatform.setSmartExternalDevicesIgnoreDebugging(value);
   }
 
   Future<void> _setSmartVpn(bool value) async {
@@ -1346,6 +1359,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         'smart_navigation_enabled': _smartNavigationEnabled,
         'smart_weather_enabled': _smartWeatherEnabled,
         'smart_external_devices_enabled': _smartExternalDevicesEnabled,
+        'smart_external_devices_ignore_debugging':
+            _smartExternalDevicesIgnoreDebugging,
         'smart_vpn_enabled': _smartVpnEnabled,
         'otp_detection_enabled': _otpDetectionEnabled,
         'otp_auto_copy_enabled': _otpAutoCopyEnabled,
@@ -1515,6 +1530,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                     _buildAccessCard(s),
                     const SizedBox(height: 24),
                     _buildRulesCard(s),
+                    const SizedBox(height: 24),
+                    _buildBypassCard(s),
                     const SizedBox(height: 24),
                     _buildSmartCard(s),
                     const SizedBox(height: 24),
@@ -1727,25 +1744,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
             activeThumbColor: colorScheme.primary,
           ),
           const SizedBox(height: 8),
-          SwitchListTile.adaptive(
-            value: _updateChecksEnabled,
-            onChanged: _setUpdateChecksEnabled,
-            title: Text(
-              s.updateChecksTitle,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(
-              s.updateChecksSubtitle,
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-            contentPadding: EdgeInsets.zero,
-            activeThumbColor: colorScheme.primary,
-          ),
           if (_isAospDevice) ...<Widget>[
-            const SizedBox(height: 8),
             SwitchListTile.adaptive(
               value: _aospCuttingEnabled,
               onChanged: _setAospCutting,
@@ -1764,6 +1763,24 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
               activeThumbColor: colorScheme.primary,
             ),
           ],
+          const SizedBox(height: 8),
+          SwitchListTile.adaptive(
+            value: _updateChecksEnabled,
+            onChanged: _setUpdateChecksEnabled,
+            title: Text(
+              s.updateChecksTitle,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              s.updateChecksSubtitle,
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+            activeThumbColor: colorScheme.primary,
+          ),
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
@@ -2309,55 +2326,35 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Divider(height: 1),
           ),
-          SwitchListTile.adaptive(
-            value: _onlyWithProgress,
-            onChanged: _setOnlyWithProgress,
-            title: Text(
-              s.onlyProgressTitle,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+          _buildExpandableTile(
+            settingId: _expandableSettingNativeProgress,
+            title: s.onlyProgressTitle,
+            subtitle: s.onlyProgressSubtitle,
+            trailing: Switch.adaptive(
+              value: _onlyWithProgress,
+              onChanged: _setOnlyWithProgress,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
-            subtitle: Text(
-              s.onlyProgressSubtitle,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-            contentPadding: EdgeInsets.zero,
-            activeThumbColor: Theme.of(context).colorScheme.primary,
+            expandedChild: _buildNativeProgressOptionsPanel(s),
           ),
-          const SizedBox(height: 8),
-          SwitchListTile.adaptive(
-            value: _textProgressEnabled,
-            onChanged: _setTextProgressEnabled,
-            title: Text(
-              s.textProgressTitle,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(
-              s.textProgressSubtitle,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-            contentPadding: EdgeInsets.zero,
-            activeThumbColor: Theme.of(context).colorScheme.primary,
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1),
-          ),
-          Text(
-            s.bypassRulesTitle,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBypassCard(AppStrings s) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return _sectionPanel(
+      sectionId: 'bypass',
+      title: s.bypassRulesTitle,
+      icon: Icons.content_paste_go_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
           Text(
             s.bypassRulesSubtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(height: 16),
           _selectedAppsNote(
@@ -2461,24 +2458,20 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
             activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 8),
-          SwitchListTile.adaptive(
-            value: _smartExternalDevicesEnabled,
-            onChanged: _smartDetectionEnabled ? _setSmartExternalDevices : null,
-            title: Text(
-              s.smartExternalDevicesTitle,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+          _buildExpandableTile(
+            settingId: _expandableSettingExternalDevices,
+            title: s.smartExternalDevicesTitle,
+            subtitle: _smartDetectionEnabled
+                ? s.smartExternalDevicesSubtitle
+                : s.smartNavigationDisabledSubtitle,
+            trailing: Switch.adaptive(
+              value: _smartExternalDevicesEnabled,
+              onChanged: _smartDetectionEnabled
+                  ? _setSmartExternalDevices
+                  : null,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
-            subtitle: Text(
-              _smartDetectionEnabled
-                  ? s.smartExternalDevicesSubtitle
-                  : s.smartNavigationDisabledSubtitle,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-            contentPadding: EdgeInsets.zero,
-            activeThumbColor: Theme.of(context).colorScheme.primary,
+            expandedChild: _buildExternalDevicesOptionsPanel(s),
           ),
           const SizedBox(height: 8),
           SwitchListTile.adaptive(
@@ -2501,14 +2494,17 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
             activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 8),
-          _buildExpandableSwitchTile(
+          _buildExpandableTile(
             settingId: _expandableSettingNetworkSpeed,
-            value: _networkSpeedEnabled,
-            onChanged: _setNetworkSpeedEnabled,
             title: s.networkSpeedTitle,
             subtitle: _converterEnabled
                 ? s.networkSpeedSubtitle
                 : s.networkSpeedInactiveSubtitle,
+            trailing: Switch.adaptive(
+              value: _networkSpeedEnabled,
+              onChanged: _setNetworkSpeedEnabled,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
+            ),
             expandedChild: _buildNetworkSpeedThresholdPanel(s),
           ),
         ],
@@ -2674,12 +2670,11 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     );
   }
 
-  Widget _buildExpandableSwitchTile({
+  Widget _buildExpandableTile({
     required String settingId,
-    required bool value,
-    required ValueChanged<bool> onChanged,
     required String title,
     required String subtitle,
+    required Widget trailing,
     required Widget expandedChild,
   }) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
@@ -2756,36 +2751,9 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                         ),
                       ),
                       const SizedBox(width: 12),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOutCubic,
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: expanded
-                              ? colorScheme.primary.withValues(alpha: 0.12)
-                              : Colors.transparent,
-                          shape: BoxShape.circle,
-                        ),
-                        child: AnimatedRotation(
-                          turns: expanded ? 0.25 : 0.0,
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeInOutCubic,
-                          child: Icon(
-                            Icons.chevron_right_rounded,
-                            size: 20,
-                            color: expanded
-                                ? colorScheme.primary
-                                : colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
+                      _buildExpandableTileChevron(expanded, colorScheme),
                       const SizedBox(width: 4),
-                      Switch.adaptive(
-                        value: value,
-                        onChanged: onChanged,
-                        activeThumbColor: colorScheme.primary,
-                      ),
+                      trailing,
                     ],
                   ),
                 ),
@@ -2820,6 +2788,31 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildExpandableTileChevron(bool expanded, ColorScheme colorScheme) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: expanded
+            ? colorScheme.primary.withValues(alpha: 0.12)
+            : Colors.transparent,
+        shape: BoxShape.circle,
+      ),
+      child: AnimatedRotation(
+        turns: expanded ? 0.25 : 0.0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOutCubic,
+        child: Icon(
+          Icons.chevron_right_rounded,
+          size: 20,
+          color: expanded ? colorScheme.primary : colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -2948,6 +2941,97 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExternalDevicesOptionsPanel(AppStrings s) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: _buildInlinePanelSwitchRow(
+        title: s.smartExternalDevicesIgnoreDebuggingTitle,
+        subtitle: s.smartExternalDevicesIgnoreDebuggingSubtitle,
+        value: _smartExternalDevicesIgnoreDebugging,
+        onChanged: _setSmartExternalDevicesIgnoreDebugging,
+      ),
+    );
+  }
+
+  Widget _buildNativeProgressOptionsPanel(AppStrings s) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: _buildInlinePanelSwitchRow(
+        title: s.textProgressTitle,
+        subtitle: s.textProgressSubtitle,
+        value: _textProgressEnabled,
+        onChanged: _setTextProgressEnabled,
+      ),
+    );
+  }
+
+  Widget _buildInlinePanelSwitchRow({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+  }) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        splashFactory: NoSplash.splashFactory,
+        overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        focusColor: Colors.transparent,
+        onTap: onChanged == null ? null : () => onChanged(!value),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Switch.adaptive(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: colorScheme.primary,
+              ),
+            ],
+          ),
         ),
       ),
     );

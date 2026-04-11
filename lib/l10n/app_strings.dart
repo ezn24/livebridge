@@ -133,6 +133,11 @@ class AppStrings {
       : 'The live element appears when combined download and upload reach this threshold.';
   String get networkSpeedThresholdAlways =>
       isRu ? 'Показывать всегда' : 'Always show';
+  String get smartExternalDevicesIgnoreDebuggingTitle =>
+      isRu ? 'Игнорировать отладку' : 'Ignore debugging';
+  String get smartExternalDevicesIgnoreDebuggingSubtitle => isRu
+      ? 'Не показывать Live для USB debugging, wireless debugging, ADB и похожих системных уведомлений.'
+      : 'Skip Live updates for USB debugging, wireless debugging, ADB, and similar system notifications.';
   String get syncDndTitle => isRu ? 'Синхронизировать DnD' : 'Sync DnD';
   String get syncDndSubtitle => isRu
       ? 'Если на смартфоне включен режим Не беспокоить, уведомления LiveBridge не показываются.'
@@ -301,13 +306,12 @@ class AppStrings {
       ? 'Сначала включите умное распознавание.'
       : 'Enable smart status detection first.';
   String get smartDetectionDisabledSubtitle => isRu
-      ? 'Отключено в режиме "Нативный прогресс".'
-      : 'Disabled while "Native progress" mode is enabled.';
+      ? 'Отключено в режиме "Прогресс".'
+      : 'Disabled while "Progress" mode is enabled.';
   String get conflictingModesHint => isRu
-      ? 'Чтобы работали текстовые статусы, отключите режим "Нативный прогресс".'
-      : 'Turn off "Native progress" mode to enable food/taxi/navigation text status recognition.';
-  String get onlyProgressTitle =>
-      isRu ? 'Нативный прогресс' : 'Native progress';
+      ? 'Чтобы работали текстовые статусы, отключите режим "Прогресс".'
+      : 'Turn off "Progress" mode to enable food/taxi/navigation text status recognition.';
+  String get onlyProgressTitle => isRu ? 'Прогресс' : 'Progress';
   String get onlyProgressSubtitle => isRu
       ? 'Если включено, конвертируются только уведомления с системным прогрессбаром.'
       : 'When enabled, only notifications with a system progress bar are converted.';
