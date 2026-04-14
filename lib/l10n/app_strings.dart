@@ -1,20 +1,46 @@
 import 'package:flutter/material.dart';
 
 class AppStrings {
-  AppStrings({required this.isRu});
-  final bool isRu;
+  AppStrings({required this.locale});
+  final Locale locale;
 
-  static AppStrings of(BuildContext context) {
-    final bool isRu = Localizations.localeOf(
-      context,
-    ).languageCode.toLowerCase().startsWith('ru');
-    return AppStrings(isRu: isRu);
+  bool get isRu => locale.languageCode.toLowerCase().startsWith('ru');
+  bool get isZhHans {
+    final String languageCode = locale.languageCode.toLowerCase();
+    if (languageCode != 'zh') return false;
+    final String scriptCode = locale.scriptCode?.toLowerCase() ?? '';
+    final String countryCode = locale.countryCode?.toLowerCase() ?? '';
+    return scriptCode == 'hans' || countryCode == 'cn' || countryCode == 'sg';
   }
 
-  String get refresh => isRu ? 'Обновить' : 'Refresh';
-  String get saved => isRu ? 'Настройки сохранены.' : 'Settings saved.';
+  bool get isZhHant {
+    final String languageCode = locale.languageCode.toLowerCase();
+    if (languageCode != 'zh') return false;
+    final String scriptCode = locale.scriptCode?.toLowerCase() ?? '';
+    final String countryCode = locale.countryCode?.toLowerCase() ?? '';
+    return scriptCode == 'hant' || countryCode == 'tw' || countryCode == 'hk' || countryCode == 'mo';
+  }
+
+  String tr({
+    required String en,
+    required String ru,
+    String? zhHans,
+    String? zhHant,
+  }) {
+    if (isRu) return ru;
+    if (isZhHant) return zhHant ?? zhHans ?? en;
+    if (isZhHans) return zhHans ?? zhHant ?? en;
+    return en;
+  }
+
+  static AppStrings of(BuildContext context) {
+    return AppStrings(locale: Localizations.localeOf(context));
+  }
+
+  String get refresh => tr(en: 'Refresh', ru: 'Обновить', zhHans: '刷新', zhHant: '重新整理');
+  String get saved => tr(en: 'Settings saved.', ru: 'Настройки сохранены.', zhHans: '设置已保存。', zhHant: '設定已儲存。');
   String get saveFailed =>
-      isRu ? 'Не удалось сохранить настройки.' : 'Unable to save settings.';
+      tr(en: 'Unable to save settings.', ru: 'Не удалось сохранить настройки.', zhHans: '无法保存设置。', zhHant: '無法儲存設定。');
   String get permissionGranted => isRu
       ? 'Разрешение на уведомления выдано.'
       : 'Notification permission granted.';
@@ -46,18 +72,18 @@ class AppStrings {
       ? 'Словарь пустой или поврежден.'
       : 'Dictionary is empty or invalid.';
   String get dictionaryDownloadFailed =>
-      isRu ? 'Не удалось выгрузить словарь.' : 'Failed to export dictionary.';
+      tr(en: 'Failed to export dictionary.', ru: 'Не удалось выгрузить словарь.', zhHans: '导出词典失败。', zhHant: '匯出字典失敗。');
   String get dictionarySaved =>
-      isRu ? 'Словарь сохранен в Загрузки.' : 'Dictionary saved to Downloads.';
+      tr(en: 'Dictionary saved to Downloads.', ru: 'Словарь сохранен в Загрузки.', zhHans: '词典已保存到下载。', zhHant: '字典已儲存到下載資料夾。');
   String get dictionaryUploadDone => isRu
       ? 'Пользовательский словарь загружен.'
       : 'Custom dictionary uploaded.';
   String get dictionaryUpdateDone =>
-      isRu ? 'Словарь обновлен из GitHub.' : 'Dictionary updated from GitHub.';
+      tr(en: 'Dictionary updated from GitHub.', ru: 'Словарь обновлен из GitHub.', zhHans: '词典已从 GitHub 更新。', zhHant: '字典已從 GitHub 更新。');
   String get dictionaryInvalid =>
-      isRu ? 'Невалидный JSON словаря.' : 'Invalid dictionary JSON.';
+      tr(en: 'Invalid dictionary JSON.', ru: 'Невалидный JSON словаря.', zhHans: '词典 JSON 无效。', zhHant: '字典 JSON 無效。');
   String get dictionaryUploadFailed =>
-      isRu ? 'Не удалось загрузить словарь.' : 'Failed to upload dictionary.';
+      tr(en: 'Failed to upload dictionary.', ru: 'Не удалось загрузить словарь.', zhHans: '上传词典失败。', zhHant: '上傳字典失敗。');
   String get dictionaryUpdateFailed => isRu
       ? 'Не удалось обновить словарь из GitHub.'
       : 'Failed to update dictionary from GitHub.';
@@ -65,7 +91,7 @@ class AppStrings {
       ? 'Возвращен словарь из приложения.'
       : 'Bundled dictionary restored.';
   String get dictionaryResetFailed =>
-      isRu ? 'Не удалось сбросить словарь.' : 'Failed to reset dictionary.';
+      tr(en: 'Failed to reset dictionary.', ru: 'Не удалось сбросить словарь.', zhHans: '重置词典失败。', zhHant: '重設字典失敗。');
 
   String get heroTitle => 'LiveBridge';
   String get masterToggleLockedHint => isRu
@@ -74,16 +100,16 @@ class AppStrings {
   String get githubUrl => 'github.com/appsfolder/livebridge';
   String get githubReleasesUrl => 'github.com/appsfolder/livebridge/releases';
   String get downloadPageUrl => 'appsfolder.github.io/livebridge';
-  String get reportBug => isRu ? 'Сообщить о баге' : 'Report a bug';
+  String get reportBug => tr(en: 'Report a bug', ru: 'Сообщить о баге', zhHans: '报告问题', zhHant: '回報問題');
   String get bugReportCopied => isRu
       ? 'Диагностика скопирована в буфер. Вставьте в issue.'
       : 'Diagnostics copied to clipboard. Paste it into the issue.';
   String get bugReportCopyFailed => isRu
       ? 'Не удалось скопировать диагностику.'
       : 'Failed to copy diagnostics.';
-  String get hideWarningBanner => isRu ? 'Скрыть' : 'Hide';
+  String get hideWarningBanner => tr(en: 'Hide', ru: 'Скрыть', zhHans: '隐藏', zhHant: '隱藏');
   String get backgroundWarningTitle =>
-      isRu ? 'Важно для фоновой работы' : 'Background mode warning';
+      tr(en: 'Background mode warning', ru: 'Важно для фоновой работы', zhHans: '后台模式提示', zhHant: '背景模式提醒');
   String backgroundWarningBody(String deviceLabel) => isRu
       ? 'Для $deviceLabel нужно вручную разрешить автозапуск и работу без ограничений в фоне, иначе Live Updates могут не появляться или зависать.'
       : 'On $deviceLabel, allow autostart and unrestricted background activity, otherwise Live Updates may stop appearing or freeze.';
@@ -94,32 +120,32 @@ class AppStrings {
       ? 'Для Samsung доступна специальная сборка LiveBridge с улучшенной поддержкой Samsung-функций. Лучше установить ее вместо обычной версии.'
       : 'There is a dedicated LiveBridge build for Samsung devices with improved Samsung-specific support. It is recommended over the regular build.';
   String get samsungWarningAction =>
-      isRu ? 'Открыть загрузки' : 'Get Samsung build';
+      tr(en: 'Get Samsung build', ru: 'Открыть загрузки');
 
-  String get accessTitle => isRu ? 'Разрешения' : 'Permissions';
+  String get accessTitle => tr(en: 'Permissions', ru: 'Разрешения', zhHans: '权限', zhHant: '權限');
   String get accessSubtitle => isRu
       ? 'Без этих трёх разрешений конвертация будет работать нестабильно.'
       : 'Conversion reliability depends on these three permissions.';
   String get listenerAccess =>
-      isRu ? 'Доступ к уведомлениям' : 'Notification Listener access';
+      tr(en: 'Notification Listener access', ru: 'Доступ к уведомлениям');
   String get postNotifications =>
-      isRu ? 'Отправка уведомлений' : 'Post notifications permission';
+      tr(en: 'Post notifications permission', ru: 'Отправка уведомлений');
   String get liveUpdatesAccess =>
-      isRu ? 'Продвижение Live Updates' : 'Live Updates promotion';
-  String get open => isRu ? 'Открыть' : 'Open';
-  String get request => isRu ? 'Запросить' : 'Request';
-  String get grant => isRu ? 'Выдать' : 'Grant';
-  String get manage => isRu ? 'Управлять' : 'Manage';
-  String get settingsTitle => isRu ? 'Настройки' : 'Settings';
+      tr(en: 'Live Updates promotion', ru: 'Продвижение Live Updates');
+  String get open => tr(en: 'Open', ru: 'Открыть', zhHans: '打开', zhHant: '開啟');
+  String get request => tr(en: 'Request', ru: 'Запросить', zhHans: '请求', zhHant: '請求');
+  String get grant => tr(en: 'Grant', ru: 'Выдать', zhHans: '授予', zhHant: '授權');
+  String get manage => tr(en: 'Manage', ru: 'Управлять', zhHans: '管理', zhHant: '管理');
+  String get settingsTitle => tr(en: 'Settings', ru: 'Настройки', zhHans: '设置', zhHant: '設定');
   String get keepAliveForegroundTitle =>
-      isRu ? 'Альтернативный фоновый режим' : 'Alt background mode';
+      tr(en: 'Alt background mode', ru: 'Альтернативный фоновый режим');
   String get keepAliveForegroundSubtitle => isRu
       ? 'Держит foreground-сервис для более стабильной работы в фоне.'
       : 'Runs a persistent foreground service for better background stability.';
   String get keepAliveForegroundInactiveSubtitle => isRu
       ? 'Включите LiveBridge, чтобы режим начал работать.'
       : 'Enable the LiveBridge for this mode to take effect.';
-  String get networkSpeedTitle => isRu ? 'Скорость сети' : 'Network speed';
+  String get networkSpeedTitle => tr(en: 'Network speed', ru: 'Скорость сети', zhHans: '网速', zhHant: '網速');
   String get networkSpeedSubtitle => isRu
       ? 'Показывает загрузку и отдачу как отдельный Live Update в статус-баре.'
       : 'Shows current download and upload as a separate Live Update in the status bar.';
@@ -127,42 +153,42 @@ class AppStrings {
       ? 'Включите LiveBridge, чтобы монитор скорости начал работать.'
       : 'Enable LiveBridge for the network speed monitor to start working.';
   String get networkSpeedThresholdTitle =>
-      isRu ? 'Минимальная скорость для показа' : 'Minimum speed to show';
+      tr(en: 'Minimum speed to show', ru: 'Минимальная скорость для показа');
   String get networkSpeedThresholdSubtitle => isRu
       ? 'Лайв-элемент появится, когда суммарная скорость загрузки и отдачи достигнет этого порога.'
       : 'The live element appears when combined download and upload reach this threshold.';
   String get networkSpeedThresholdAlways =>
-      isRu ? 'Показывать всегда' : 'Always show';
+      tr(en: 'Always show', ru: 'Показывать всегда', zhHans: '始终显示', zhHant: '永遠顯示');
   String get smartExternalDevicesIgnoreDebuggingTitle =>
-      isRu ? 'Игнорировать отладку' : 'Ignore debugging';
+      tr(en: 'Ignore debugging', ru: 'Игнорировать отладку');
   String get smartExternalDevicesIgnoreDebuggingSubtitle => isRu
       ? 'Не показывать Live для USB debugging, wireless debugging, ADB и похожих системных уведомлений.'
       : 'Skip Live updates for USB debugging, wireless debugging, ADB, and similar system notifications.';
-  String get syncDndTitle => isRu ? 'Синхронизировать DnD' : 'Sync DnD';
+  String get syncDndTitle => tr(en: 'Sync DnD', ru: 'Синхронизировать DnD', zhHans: '同步勿扰', zhHant: '同步勿擾');
   String get syncDndSubtitle => isRu
       ? 'Если на смартфоне включен режим Не беспокоить, уведомления LiveBridge не показываются.'
       : 'When Do Not Disturb is enabled on the phone, LiveBridge notifications are hidden.';
   String get updateChecksTitle =>
-      isRu ? 'Проверка обновлений' : 'Update checking';
+      tr(en: 'Update checking', ru: 'Проверка обновлений', zhHans: '检查更新', zhHant: '檢查更新');
   String get updateChecksSubtitle => isRu
       ? 'Проверять обновления при входе и не чаще одного раза в 6 часов.'
       : 'Check updates on app start, and no more than once every 6 hours.';
   String updateAvailableBanner(String version) => isRu
       ? 'Доступно обновление${version.isNotEmpty ? ': $version' : ''}'
       : 'Update available${version.isNotEmpty ? ': $version' : ''}';
-  String get experimentalTitle => isRu ? 'Экспериментальное' : 'Experimental';
+  String get experimentalTitle => tr(en: 'Experimental', ru: 'Экспериментальное', zhHans: '实验功能', zhHant: '實驗功能');
   String get notificationDedupTitle =>
-      isRu ? 'Notification dedup' : 'Notification dedup';
+      tr(en: 'Notification dedup', ru: 'Notification dedup');
   String get notificationDedupSubtitle => isRu
       ? 'Убирает оригинальные clearable-уведомления, если LiveBridge уже показал свой OTP или статус.'
       : 'Dismisses original clearable notifications after LiveBridge mirrors an OTP or status update.';
   String get notificationDedupModeLabel =>
-      isRu ? 'Режим dedup' : 'Dedup mode';
+      tr(en: 'Dedup mode', ru: 'Режим dedup');
   String get notificationDedupModeOtpStatus => isRu
       ? 'OTP и статусы'
       : 'OTP and statuses';
   String get notificationDedupModeOtpOnly =>
-      isRu ? 'Только OTP' : 'OTP only';
+      tr(en: 'OTP only', ru: 'Только OTP');
   String get notificationDedupStatusesTitle => isRu
       ? 'Также статусы'
       : 'Also dedup statuses';
@@ -170,7 +196,7 @@ class AppStrings {
       ? 'Если выключено, dedup применяется только к OTP-кодам.'
       : 'When disabled, dedup is applied only to OTP notifications.';
   String get animatedIslandTitle =>
-      isRu ? 'Анимированный остров' : 'Animated island';
+      tr(en: 'Animated island', ru: 'Анимированный остров');
   String get animatedIslandSubtitle => isRu
       ? 'Меняет короткий текст острова каждые 2-3 секунды для smart-уведомлений (может работать нестабильно).'
       : 'Rotates compact island text every 2-3 seconds for smart notifications (may be unstable).';
@@ -178,17 +204,17 @@ class AppStrings {
   String get hyperBridgeSubtitle => isRu
       ? 'Для Xiaomi Hyper OS 3.1 Глобальной: добавляет HyperOS Focus-параметры для нативного острова.'
       : 'For Xiaomi Hyper OS 3.1 Global: injects HyperOS Focus parameters for native island behavior.';
-  String get aospCuttingTitle => isRu ? 'Обрезка AOSP' : 'AOSP cutting';
+  String get aospCuttingTitle => tr(en: 'AOSP cutting', ru: 'Обрезка AOSP');
   String get aospCuttingSubtitle => isRu
       ? 'Обрезать информацию в острове до 7 символов для красивого отображения в AOSP-прошивках.'
       : 'Trim island text to 7 characters for cleaner rendering on AOSP ROMs.';
   String get appPresentationSettings =>
-      isRu ? 'Поведение приложений' : 'Per-app behavior';
+      tr(en: 'Per-app behavior', ru: 'Поведение приложений', zhHans: '按应用行为', zhHant: '各應用行為');
   String get appPresentationSubtitle => isRu
       ? 'Настройте источник текста и иконки отдельно для разных приложений.'
       : 'Choose text and icon behavior separately for different applications.';
   String get appPresentationScreenTitle =>
-      isRu ? 'Поведение приложений' : 'Per-app behavior';
+      tr(en: 'Per-app behavior', ru: 'Поведение приложений');
   String get appPresentationLoadFailed => isRu
       ? 'Не удалось загрузить настройки приложений.'
       : 'Unable to load per-app settings.';
@@ -199,9 +225,9 @@ class AppStrings {
       ? 'Не удалось сохранить JSON настроек.'
       : 'Failed to save settings JSON.';
   String get appPresentationSaved =>
-      isRu ? 'Настройки сохранены в Загрузки.' : 'Settings saved to Downloads.';
+      tr(en: 'Settings saved to Downloads.', ru: 'Настройки сохранены в Загрузки.');
   String get appPresentationUploadDone =>
-      isRu ? 'Настройки приложений загружены.' : 'Per-app settings imported.';
+      tr(en: 'Per-app settings imported.', ru: 'Настройки приложений загружены.');
   String get appPresentationUploadFailed => isRu
       ? 'Не удалось загрузить JSON настроек.'
       : 'Failed to import settings JSON.';
@@ -209,91 +235,91 @@ class AppStrings {
       ? 'Невалидный JSON настроек приложений.'
       : 'Invalid per-app settings JSON.';
   String get appPresentationDefaultSummary =>
-      isRu ? 'Стандартное поведение' : 'Default behavior';
+      tr(en: 'Default behavior', ru: 'Стандартное поведение');
   String get appPresentationTextSourceLabel =>
-      isRu ? 'Источник текста для острова' : 'Island text source';
+      tr(en: 'Island text source', ru: 'Источник текста для острова');
   String get appPresentationIconSourceLabel =>
-      isRu ? 'Источник иконки' : 'Icon source';
+      tr(en: 'Icon source', ru: 'Источник иконки');
   String get appPresentationTextTitle =>
-      isRu ? 'Title уведомления' : 'Notification title';
+      tr(en: 'Notification title', ru: 'Title уведомления');
   String get appPresentationTextNotification =>
-      isRu ? 'Текст уведомления' : 'Notification text';
+      tr(en: 'Notification text', ru: 'Текст уведомления');
   String get appPresentationIconNotification =>
-      isRu ? 'Иконка уведомления' : 'Notification icon';
+      tr(en: 'Notification icon', ru: 'Иконка уведомления');
   String get appPresentationIconApp =>
-      isRu ? 'Иконка приложения' : 'Application icon';
+      tr(en: 'Application icon', ru: 'Иконка приложения');
   String get downloadSettings =>
-      isRu ? 'Скачать настройки' : 'Download settings';
-  String get uploadSettings => isRu ? 'Загрузить настройки' : 'Upload settings';
-  String get defaultLabel => isRu ? 'По умолчанию' : 'Default';
+      tr(en: 'Download settings', ru: 'Скачать настройки', zhHans: '下载设置', zhHant: '下載設定');
+  String get uploadSettings => tr(en: 'Upload settings', ru: 'Загрузить настройки', zhHans: '上传设置', zhHant: '上傳設定');
+  String get defaultLabel => tr(en: 'Default', ru: 'По умолчанию');
   String get resetToDefault =>
-      isRu ? 'Сбросить к стандарту' : 'Reset to default';
-  String get save => isRu ? 'Сохранить' : 'Save';
+      tr(en: 'Reset to default', ru: 'Сбросить к стандарту');
+  String get save => tr(en: 'Save', ru: 'Сохранить', zhHans: '保存', zhHant: '儲存');
   String get downloadDictionary =>
-      isRu ? 'Скачать словарь' : 'Download dictionary';
+      tr(en: 'Download dictionary', ru: 'Скачать словарь');
   String get updateDictionary =>
-      isRu ? 'Обновить словарь' : 'Update dictionary';
+      tr(en: 'Update dictionary', ru: 'Обновить словарь');
   String get uploadDictionary =>
-      isRu ? 'Загрузить словарь' : 'Upload dictionary';
-  String get resetDictionary => isRu ? 'Сбросить словарь' : 'Reset dictionary';
-  String get pickApps => isRu ? 'Выбрать приложения' : 'Pick applications';
+      tr(en: 'Upload dictionary', ru: 'Загрузить словарь');
+  String get resetDictionary => tr(en: 'Reset dictionary', ru: 'Сбросить словарь');
+  String get pickApps => tr(en: 'Pick applications', ru: 'Выбрать приложения', zhHans: '选择应用', zhHant: '選擇應用程式');
   String get pickerTitle =>
-      isRu ? 'Приложения для конвертации' : 'Choose apps for conversion';
+      tr(en: 'Choose apps for conversion', ru: 'Приложения для конвертации');
   String get otpPickerTitle =>
-      isRu ? 'Приложения для кодов' : 'Choose apps for code detection';
+      tr(en: 'Choose apps for code detection', ru: 'Приложения для кодов');
   String get bypassPickerTitle =>
-      isRu ? 'Приложения bypass' : 'Choose apps for bypass';
+      tr(en: 'Choose apps for bypass', ru: 'Приложения bypass');
   String get notificationDedupPickerTitle => isRu
       ? 'Приложения для dedup'
       : 'Choose apps for notification dedup';
-  String get applySelection => isRu ? 'Применить выбор' : 'Apply selection';
+  String get applySelection => tr(en: 'Apply selection', ru: 'Применить выбор', zhHans: '应用选择', zhHant: '套用選擇');
   String get searchAppHint =>
-      isRu ? 'Поиск по названию или пакету' : 'Search by app or package';
+      tr(en: 'Search by app or package', ru: 'Поиск по названию или пакету');
   String get showSystemApps =>
-      isRu ? 'Показать системные приложения' : 'Show system applications';
+      tr(en: 'Show system applications', ru: 'Показать системные приложения');
   String get hideSystemApps =>
-      isRu ? 'Скрыть системные приложения' : 'Hide system applications';
+      tr(en: 'Hide system applications', ru: 'Скрыть системные приложения');
   String get appsLoadFailed => isRu
       ? 'Не удалось загрузить список приложений.'
       : 'Unable to load installed apps list.';
   String get appsAccessTitle =>
-      isRu ? 'Доступ к списку приложений' : 'App list access';
+      tr(en: 'App list access', ru: 'Доступ к списку приложений');
   String get appsAccessMessage => isRu
       ? 'Разрешить LiveBridge читать список установленных приложений для выбора правил?'
       : 'Allow LiveBridge to read installed apps so you can pick apps for rules?';
   String get appsAccessSaveFailed => isRu
       ? 'Не удалось сохранить выбор доступа.'
       : 'Unable to save access preference.';
-  String get cancel => isRu ? 'Отмена' : 'Cancel';
-  String get allow => isRu ? 'Разрешить' : 'Allow';
+  String get cancel => tr(en: 'Cancel', ru: 'Отмена', zhHans: '取消', zhHant: '取消');
+  String get allow => tr(en: 'Allow', ru: 'Разрешить', zhHans: '允许', zhHant: '允許');
   String selectedAppsCount(int value) =>
-      isRu ? 'Выбрано приложений: $value' : 'Selected apps: $value';
+      tr(en: 'Selected apps: $value', ru: 'Выбрано приложений: $value');
   String get noAppsSelected =>
-      isRu ? 'Приложения не выбраны' : 'No applications selected';
+      tr(en: 'No applications selected', ru: 'Приложения не выбраны');
 
-  String get rulesTitle => isRu ? 'Режим конвертации' : 'Conversion behavior';
+  String get rulesTitle => tr(en: 'Conversion behavior', ru: 'Режим конвертации', zhHans: '转换行为', zhHant: '轉換行為');
   String get rulesSubtitle => isRu
       ? 'Настройте, что именно превращать в Live Updates.'
       : 'Define what should be converted into Live Updates.';
-  String get modeLabel => isRu ? 'Режим работы' : 'Application mode';
-  String get modeAll => isRu ? 'Все приложения' : 'All applications';
+  String get modeLabel => tr(en: 'Application mode', ru: 'Режим работы');
+  String get modeAll => tr(en: 'All applications', ru: 'Все приложения', zhHans: '所有应用', zhHant: '所有應用程式');
   String get modeInclude =>
-      isRu ? 'Только указанные' : 'Only listed applications';
+      tr(en: 'Only listed applications', ru: 'Только указанные', zhHans: '仅指定应用', zhHant: '僅指定應用程式');
   String get modeExclude =>
-      isRu ? 'Исключить указанные' : 'Exclude listed applications';
+      tr(en: 'Exclude listed applications', ru: 'Исключить указанные', zhHans: '排除指定应用', zhHant: '排除指定應用程式');
   String get pickAppsHint => isRu
       ? 'Список используется только в режимах "Только указанные" или "Исключить".'
       : 'Selected app list is used only for include/exclude modes.';
-  String get bypassRulesTitle => isRu ? 'Bypass-приложения' : 'Bypass apps';
+  String get bypassRulesTitle => tr(en: 'Bypass apps', ru: 'Bypass-приложения');
   String get bypassRulesSubtitle => isRu
       ? 'Приложения из списка всегда конвертируются в Live вне зависимости от настроек.'
       : 'Listed apps are always converted to Live independently of settings.';
-  String get saveRules => isRu ? 'Сохранить' : 'Save';
+  String get saveRules => tr(en: 'Save', ru: 'Сохранить', zhHans: '保存', zhHant: '儲存');
 
   String get smartDetectionTitle =>
-      isRu ? 'Умное распознавание' : 'Smart status detection';
+      tr(en: 'Smart status detection', ru: 'Умное распознавание', zhHans: '智能状态识别', zhHant: '智慧狀態辨識');
   String get smartCardTitle =>
-      isRu ? 'Умное преобразование' : 'Smart conversion';
+      tr(en: 'Smart conversion', ru: 'Умное преобразование');
   String get smartCardSubtitle => isRu
       ? 'Преобразование текстовых этапов в один Live-прогресс.'
       : 'Converts text-only stage updates into one Live progress flow.';
@@ -301,25 +327,25 @@ class AppStrings {
       ? 'Преобразует текстовые статусы еды, такси и навигации в единый Live-прогресс.'
       : 'Converts text-only food/taxi/navigation status notifications into a single Live.';
   String get smartMediaPlaybackTitle =>
-      isRu ? 'Media Playback' : 'Media Playback';
+      tr(en: 'Media Playback', ru: 'Media Playback');
   String get smartMediaPlaybackSubtitle => isRu
       ? 'Преобразует уведомления медиаплеера в Live. На некоторых OEM может дублировать нативный плеер.'
       : 'Converts media playback notifications into Live. On some OEMs this may duplicate native media UI.';
   String get smartNavigationTitle =>
-      isRu ? 'Навигация (карты)' : 'Navigation (maps)';
+      tr(en: 'Navigation (maps)', ru: 'Навигация (карты)');
   String get smartNavigationSubtitle => isRu
       ? 'Распознавание уведомлений навигации.'
       : 'Navigation notification detection.';
-  String get smartWeatherTitle => isRu ? 'Погода' : 'Weather';
+  String get smartWeatherTitle => tr(en: 'Weather', ru: 'Погода');
   String get smartWeatherSubtitle => isRu
       ? 'Распознавание погодных уведомлений (температура в острове).'
       : 'Weather notification detection (temperature in island).';
   String get smartExternalDevicesTitle =>
-      isRu ? 'Внешние устройства' : 'External devices';
+      tr(en: 'External devices', ru: 'Внешние устройства');
   String get smartExternalDevicesSubtitle => isRu
       ? 'Показывает статус connected/connecting и имя устройства в острове.'
       : 'Shows connected/connecting status and device name in island.';
-  String get smartVpnTitle => isRu ? 'VPN-сервисы' : 'VPN services';
+  String get smartVpnTitle => tr(en: 'VPN services', ru: 'VPN-сервисы');
   String get smartVpnSubtitle => isRu
       ? 'Показывает входящий/исходящий трафик в формате *b/s.'
       : 'Shows incoming/outgoing traffic speed in *b/s format.';
@@ -332,43 +358,43 @@ class AppStrings {
   String get conflictingModesHint => isRu
       ? 'Чтобы работали текстовые статусы, отключите режим "Прогресс".'
       : 'Turn off "Progress" mode to enable food/taxi/navigation text status recognition.';
-  String get onlyProgressTitle => isRu ? 'Прогресс' : 'Progress';
+  String get onlyProgressTitle => tr(en: 'Progress', ru: 'Прогресс', zhHans: '进度', zhHant: '進度');
   String get onlyProgressSubtitle => isRu
       ? 'Если включено, конвертируются только уведомления с системным прогрессбаром.'
       : 'When enabled, only notifications with a system progress bar are converted.';
   String get textProgressTitle =>
-      isRu ? 'Текстовые прогрессы' : 'Text progress';
+      tr(en: 'Text progress', ru: 'Текстовые прогрессы');
   String get textProgressSubtitle => isRu
       ? 'Если в тексте есть %, и это не скидка/акция, считать как прогресс и обновлять остров.'
       : 'If text contains % and it is not discount-related, treat it as progress and update island.';
 
   String get blockedTitle =>
-      isRu ? 'AOSP поддерживается частично' : 'AOSP is partially supported';
+      tr(en: 'AOSP is partially supported', ru: 'AOSP поддерживается частично', zhHans: 'AOSP 仅部分支持', zhHant: 'AOSP 僅部分支援');
   String get blockedSubtitle => isRu
       ? 'LiveBridge плохо работает на устройствах с AOSP. Можете продолжить, но за последствия я не отвечаю.'
       : 'LiveBridge is not designed for AOSP. You can continue, but i am not responsible for any bugs.';
   String get blockedBypassAction =>
-      isRu ? 'Все равно родолжить' : 'Continue anyway';
+      tr(en: 'Continue anyway', ru: 'Все равно родолжить', zhHans: '仍然继续', zhHant: '仍要繼續');
   String get blockedBypassSaveFailed =>
-      isRu ? 'Не удалось сохранить выбор.' : 'Unable to save your choice.';
+      tr(en: 'Unable to save your choice.', ru: 'Не удалось сохранить выбор.');
 
-  String get otpTitle => isRu ? 'Коды подтверждения' : 'Verification codes';
+  String get otpTitle => tr(en: 'Verification codes', ru: 'Коды подтверждения', zhHans: '验证码', zhHant: '驗證碼');
   String get otpSubtitle => isRu
       ? 'Показывает код компактно в острове.'
       : 'Shows the code in compact island.';
   String get otpEnabledTitle =>
-      isRu ? 'Распознавать 2FA коды' : 'Detect verification codes';
+      tr(en: 'Detect verification codes', ru: 'Распознавать 2FA коды');
   String get otpEnabledSubtitle => isRu
       ? 'В свернутом Live-острове показывается сам код.'
       : 'Shows the numeric code in the compact island.';
   String get otpAutoCopyTitle =>
-      isRu ? 'Автокопирование кода' : 'Auto-copy code';
+      tr(en: 'Auto-copy code', ru: 'Автокопирование кода', zhHans: '自动复制验证码', zhHant: '自動複製驗證碼');
   String get otpAutoCopySubtitle => isRu
       ? 'Код сразу копируется в буфер обмена.'
       : 'Code is copied to clipboard automatically.';
   String get otpAutoCopyDisabledSubtitle => isRu
       ? 'Сначала включите распознавание кодов.'
       : 'Enable code detection first.';
-  String get otpModeLabel => isRu ? 'Режим для кодов' : 'Code apps mode';
-  String get saveOtpRules => isRu ? 'Сохранить' : 'Save';
+  String get otpModeLabel => tr(en: 'Code apps mode', ru: 'Режим для кодов');
+  String get saveOtpRules => tr(en: 'Save', ru: 'Сохранить', zhHans: '保存', zhHant: '儲存');
 }
