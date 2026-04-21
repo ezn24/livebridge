@@ -695,7 +695,7 @@
         }
         to {
           transform: translateY(-115%);
-          opacity: 0;
+          opacity: 0.28;
         }
       }
 
@@ -1347,10 +1347,10 @@
       const rawAssetBase = `https://raw.githubusercontent.com/${owner}/${repo}/main/assets`;
       const numberFormat = new Intl.NumberFormat("en-US");
       const defaultRecommendedBuild = "armv8a";
-      const liveRefreshMinMs = 30000;
-      const liveRefreshJitterMs = 1000;
+      const liveRefreshMinMs = 5200;
+      const liveRefreshJitterMs = 900;
+      const liveRefreshHiddenMs = 15000;
       const liveRefreshErrorMs = 30000;
-      const liveCounterAnimationDurationMs = 520;
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
       const counterNumberPattern = /\d[\d,]*/g;
       let releaseDataPollTimer = null;
@@ -1397,7 +1397,7 @@
         clearReleaseDataRefreshTimer();
         releaseDataPollTimer = window.setTimeout(() => {
           if (document.hidden) {
-            scheduleReleaseDataRefresh(getNextLiveRefreshDelay());
+            scheduleReleaseDataRefresh(liveRefreshHiddenMs);
             return;
           }
           loadReleaseData({ preserveOnError: true });
@@ -1434,13 +1434,6 @@
         return node;
       }
 
-      function createCounterGlyph(char) {
-        const glyph = document.createElement("span");
-        glyph.className = "live-counter-glyph";
-        glyph.textContent = char;
-        return glyph;
-      }
-
       function createCounterChar(char, { previousChar = "", animate = false } = {}) {
         const node = document.createElement("span");
         const safeChar = char === " " ? "\u00A0" : char;
@@ -1462,22 +1455,15 @@
           newFace.className = "live-counter-face live-counter-face--new";
           newFace.textContent = safeChar;
 
-          let finalized = false;
-          const finalize = () => {
-            if (finalized) return;
-            finalized = true;
-            node.classList.remove("is-flipping");
-            node.replaceChildren(createCounterGlyph(safeChar));
-          };
-
           stack.append(oldFace, newFace);
           node.append(stack);
-          newFace.addEventListener("animationend", finalize, { once: true });
-          window.setTimeout(finalize, liveCounterAnimationDurationMs + 80);
           return node;
         }
 
-        node.append(createCounterGlyph(safeChar));
+        const glyph = document.createElement("span");
+        glyph.className = "live-counter-glyph";
+        glyph.textContent = safeChar;
+        node.append(glyph);
         return node;
       }
 
@@ -1508,21 +1494,6 @@
         return node;
       }
 
-      function hasStableCounterShape(previousSegments, nextSegments) {
-        if (!previousSegments.length || previousSegments.length !== nextSegments.length) {
-          return false;
-        }
-
-        return nextSegments.every((segment, index) => {
-          const previousSegment = previousSegments[index];
-          if (!previousSegment || previousSegment.type !== segment.type) {
-            return false;
-          }
-
-          return segment.type === "number" || previousSegment.value === segment.value;
-        });
-      }
-
       function renderCounterText(element, nextText, { animate = true } = {}) {
         if (!element) return;
 
@@ -1539,17 +1510,15 @@
         }
 
         const nextSegments = splitCounterSegments(nextValue);
-        const previousSegments = splitCounterSegments(previousValue);
-        const canAnimateDigits = Boolean(
-          animate &&
-          previousValue &&
-          !prefersReducedMotion.matches &&
-          hasStableCounterShape(previousSegments, nextSegments)
-        );
-        const previousNumberSegments = previousSegments
+        const previousNumberSegments = splitCounterSegments(previousValue)
           .filter((segment) => segment.type === "number")
           .map((segment) => segment.value);
         const fragment = document.createDocumentFragment();
+        const shouldAnimate = Boolean(
+          animate &&
+          previousValue &&
+          !prefersReducedMotion.matches
+        );
         let numberSegmentIndex = 0;
 
         nextSegments.forEach((segment) => {
@@ -1562,7 +1531,7 @@
             createCounterNumberSegment(
               segment.value,
               previousNumberSegments[numberSegmentIndex] || "",
-              canAnimateDigits
+              shouldAnimate
             )
           );
           numberSegmentIndex += 1;
@@ -1791,7 +1760,9 @@
         const statusEl = document.getElementById("stat-status");
         const bannerTitleEl = document.getElementById("release-banner-title");
         const bannerCopyEl = document.getElementById("release-banner-copy");
-        let nextRefreshDelay = getNextLiveRefreshDelay();
+        let nextRefreshDelay = document.hidden
+          ? liveRefreshHiddenMs
+          : getNextLiveRefreshDelay();
 
         releaseDataRequestInFlight = true;
 

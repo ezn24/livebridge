@@ -48,7 +48,6 @@ object LiveUpdateNotifier {
     private const val OTP_REPEAT_SUPPRESS_MS = 60_000L
     private const val OTP_AUTOCOPY_COPIED_SHOW_DELAY_MS = 1_000L
     private const val OTP_AUTOCOPY_COPIED_SHOW_DURATION_MS = 1_500L
-    private const val AOSP_ISLAND_TEXT_LIMIT = 7
     private const val SMART_ISLAND_ANIMATION_MIN_DELAY_MS = 2_000L
     private const val SMART_ISLAND_ANIMATION_MAX_DELAY_MS = 3_000L
     private const val SMART_ISLAND_TOKEN_MAX_LENGTH = 20
@@ -227,11 +226,14 @@ object LiveUpdateNotifier {
                     packageName = sbn.packageName,
                     source = source,
                     parserDictionary = parserDictionary,
+                    taxiEnabled = prefs.getSmartTaxiEnabled(),
+                    deliveryEnabled = prefs.getSmartDeliveryEnabled(),
                     navigationEnabled = prefs.getSmartNavigationEnabled(),
                     weatherEnabled = prefs.getSmartWeatherEnabled(),
                     externalDevicesEnabled = prefs.getSmartExternalDevicesEnabled(),
                     externalDevicesIgnoreDebugging = prefs.getSmartExternalDevicesIgnoreDebugging(),
                     vpnEnabled = prefs.getSmartVpnEnabled(),
+                    smartPackageAllowed = prefs.isSmartPackageAllowed(sbn.packageName),
                     hasNativeProgress = hasNativeProgress
                 )
             } else {
@@ -780,11 +782,23 @@ object LiveUpdateNotifier {
             ?: extractTitle(source, appName, allowRemoteViewTextFallback)
         val text = textOverride?.takeIf { it.isNotBlank() }
             ?: extractText(source, allowRemoteViewTextFallback)
-        val displayTitle = when (appPresentationOverride.compactTextSource) {
-            CompactTextSource.TEXT -> text.ifBlank { title }
-            CompactTextSource.TITLE -> title
+        val displayTitle = if (appPresentationOverride.usesExplicitSources()) {
+            when (appPresentationOverride.resolvedTitleSource()) {
+                NotificationTitleSource.NOTIFICATION_TITLE -> title.ifBlank { appName }
+                NotificationTitleSource.APP_TITLE -> appName.ifBlank { title }
+            }
+        } else {
+            when (appPresentationOverride.compactTextSource) {
+                CompactTextSource.TEXT -> text.ifBlank { title }
+                CompactTextSource.TITLE -> title
+            }
         }
-        val displayText = if (
+        val displayText = if (appPresentationOverride.usesExplicitSources()) {
+            when (appPresentationOverride.resolvedContentSource()) {
+                NotificationContentSource.NOTIFICATION_TEXT -> text.ifBlank { title }
+                NotificationContentSource.NOTIFICATION_TITLE -> title.ifBlank { text }
+            }
+        } else if (
             appPresentationOverride.compactTextSource == CompactTextSource.TEXT &&
             title.isNotBlank() &&
             title != displayTitle
@@ -794,6 +808,7 @@ object LiveUpdateNotifier {
             text
         }
         val aospCuttingEnabled = runtimePrefs.getAospCuttingEnabled()
+        val aospCuttingLength = runtimePrefs.getAospCuttingLength()
         val hyperBridgeEnabled = runtimePrefs.getHyperBridgeEnabled()
 
         val progressMax = progressOverride?.max ?: source.extras.getInt(Notification.EXTRA_PROGRESS_MAX, 0)
@@ -881,20 +896,34 @@ object LiveUpdateNotifier {
                         .setStyledByProgress(true)
                 )
                 builder.setShortCriticalText(
-                    limitIslandText(smartShortTextOverride ?: "$percent%", aospCuttingEnabled)
+                    limitIslandText(
+                        smartShortTextOverride ?: "$percent%",
+                        aospCuttingEnabled,
+                        aospCuttingLength
+                    )
                 )
             }
         } else if (otpOverride != null) {
             builder.setStyle(NotificationCompat.BigTextStyle().bigText(text))
             builder.setShortCriticalText(
-                limitIslandText(otpShortTextOverride ?: otpOverride.code, aospCuttingEnabled)
+                limitIslandText(
+                    otpShortTextOverride ?: otpOverride.code,
+                    aospCuttingEnabled,
+                    aospCuttingLength
+                )
             )
         } else {
             builder.setStyle(NotificationCompat.BigTextStyle().bigText(text))
         }
         if (smartShortTextOverride != null && !hasProgress) {
             builder.setContentText(smartShortTextOverride)
-            builder.setShortCriticalText(limitIslandText(smartShortTextOverride, aospCuttingEnabled))
+            builder.setShortCriticalText(
+                limitIslandText(
+                    smartShortTextOverride,
+                    aospCuttingEnabled,
+                    aospCuttingLength
+                )
+            )
         }
 
         if (hyperBridgeEnabled) {
@@ -969,11 +998,14 @@ object LiveUpdateNotifier {
         packageName: String,
         source: Notification,
         parserDictionary: LiveParserDictionary,
+        taxiEnabled: Boolean,
+        deliveryEnabled: Boolean,
         navigationEnabled: Boolean,
         weatherEnabled: Boolean,
         externalDevicesEnabled: Boolean,
         externalDevicesIgnoreDebugging: Boolean,
         vpnEnabled: Boolean,
+        smartPackageAllowed: Boolean,
         hasNativeProgress: Boolean
     ): SmartStageMatch? {
         val isNavigationPackage = isLikelyNavigationPackage(packageName, parserDictionary)
@@ -999,6 +1031,12 @@ object LiveUpdateNotifier {
 
         for (rule in parserDictionary.smartRules) {
             if (hasNativeProgress && rule.id != "weather") {
+                continue
+            }
+            if (rule.id == "taxi" && (!taxiEnabled || !smartPackageAllowed)) {
+                continue
+            }
+            if (rule.id == "food" && (!deliveryEnabled || !smartPackageAllowed)) {
                 continue
             }
             if (rule.id == "navigation" && !navigationEnabled) {
@@ -1364,7 +1402,7 @@ object LiveUpdateNotifier {
         return parserDictionary.resolveStatusText(
             ruleId = ruleId,
             stageValue = stageValue,
-            isRussianLocale = isRussianLocale(context)
+            locale = currentLocale(context)
         )
     }
 
@@ -1387,7 +1425,7 @@ object LiveUpdateNotifier {
         val statusText = parserDictionary.resolveStatusText(
             ruleId = "external_device",
             stageValue = stageValue,
-            isRussianLocale = isRussianLocale(context)
+            locale = currentLocale(context)
         )
 
         return when {
@@ -1762,13 +1800,17 @@ object LiveUpdateNotifier {
         return if (unit != null) "$value°$unit" else "$value°"
     }
 
-    private fun isRussianLocale(context: Context): Boolean {
-        val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+    private fun currentLocale(context: Context): Locale? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             context.resources.configuration.locales.get(0)
         } else {
             @Suppress("DEPRECATION")
             context.resources.configuration.locale
         }
+    }
+
+    private fun isRussianLocale(context: Context): Boolean {
+        val locale = currentLocale(context)
         val language = locale?.language?.lowercase(Locale.ROOT).orEmpty()
         return language.startsWith("ru")
     }
@@ -1838,7 +1880,11 @@ object LiveUpdateNotifier {
             nextGeneration
         }
 
-        val copiedLabel = if (isRussianLocale(context)) "Скопировано" else "Copied"
+        val copiedLabel = when {
+            isRussianLocale(context) -> "Скопировано"
+            currentLocale(context)?.language?.lowercase(Locale.ROOT) == "zh" -> "已复制"
+            else -> "Copied"
+        }
 
         scheduleOtpAnimationStep(
             context = context,
@@ -1970,9 +2016,17 @@ object LiveUpdateNotifier {
         if (tokens.isEmpty()) {
             return
         }
-        val aospCuttingEnabled = ConverterPrefs(context).getAospCuttingEnabled()
-        val normalizedTokens = tokens.map { normalizeAnimatedToken(it, aospCuttingEnabled) }
-        val normalizedInitial = normalizeAnimatedToken(initialToken, aospCuttingEnabled)
+        val prefs = ConverterPrefs(context)
+        val aospCuttingEnabled = prefs.getAospCuttingEnabled()
+        val aospCuttingLength = prefs.getAospCuttingLength()
+        val normalizedTokens = tokens.map {
+            normalizeAnimatedToken(it, aospCuttingEnabled, aospCuttingLength)
+        }
+        val normalizedInitial = normalizeAnimatedToken(
+            initialToken,
+            aospCuttingEnabled,
+            aospCuttingLength
+        )
         val uniqueRenderableTokens = normalizedTokens
             .mapNotNull { it }
             .distinctBy { it.lowercase(Locale.ROOT) }
@@ -2092,7 +2146,7 @@ object LiveUpdateNotifier {
                 aggregateKey = aggregateKey,
                 generation = generation
             )
-        }, nextSmartIslandDelayMs())
+        }, nextSmartIslandDelayMs(context))
     }
 
     private fun isSmartAnimationGenerationCurrent(aggregateKey: String, generation: Long): Boolean {
@@ -2136,14 +2190,15 @@ object LiveUpdateNotifier {
         return null
     }
 
-    private fun nextSmartIslandDelayMs(): Long {
-        return Random.nextLong(
-            SMART_ISLAND_ANIMATION_MIN_DELAY_MS,
-            SMART_ISLAND_ANIMATION_MAX_DELAY_MS + 1L
-        )
+    private fun nextSmartIslandDelayMs(context: Context): Long {
+        return ConverterPrefs(context).getAnimatedIslandUpdateFrequencyMs().toLong()
     }
 
-    private fun normalizeAnimatedToken(raw: String?, aospCuttingEnabled: Boolean): String? {
+    private fun normalizeAnimatedToken(
+        raw: String?,
+        aospCuttingEnabled: Boolean,
+        aospCuttingLength: Int
+    ): String? {
         val normalized = raw.orEmpty()
             .replace(Regex("\\s+"), " ")
             .trim()
@@ -2151,7 +2206,11 @@ object LiveUpdateNotifier {
         if (normalizedLengthSafe.isBlank()) {
             return null
         }
-        return limitIslandText(normalizedLengthSafe, aospCuttingEnabled)
+        return limitIslandText(
+            normalizedLengthSafe,
+            aospCuttingEnabled,
+            aospCuttingLength
+        )
             .trim()
             .ifBlank { null }
     }
@@ -2823,6 +2882,15 @@ object LiveUpdateNotifier {
         add(extras.getCharSequence(Notification.EXTRA_INFO_TEXT))
         extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
             ?.forEach(::add)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            @Suppress("DEPRECATION")
+            val messages = extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+            messages
+                ?.let(Notification.MessagingStyle.Message::getMessagesFromBundleArray)
+                ?.asReversed()
+                ?.firstOrNull { message -> !message.text.isNullOrBlank() }
+                ?.let { message -> add(message.text) }
+        }
         if (includeRemoteViewTexts) {
             extractRemoteViewTexts(notification).forEach { add(it) }
         }
@@ -3129,12 +3197,12 @@ object LiveUpdateNotifier {
         return if (value == Int.MIN_VALUE) 0 else abs(value)
     }
 
-    private fun limitIslandText(value: String?, enabled: Boolean): String {
+    private fun limitIslandText(value: String?, enabled: Boolean, maxLength: Int): String {
         val normalized = value.orEmpty()
         if (!enabled) {
             return normalized
         }
-        return safeTakeByGraphemes(normalized, AOSP_ISLAND_TEXT_LIMIT)
+        return safeTakeByGraphemes(normalized, maxLength)
     }
 
     private fun safeTakeByGraphemes(value: String, maxGraphemes: Int): String {

@@ -8,6 +8,17 @@ If you just want to install the app, use the download page:
 
 - https://appsfolder.github.io/livebridge/
 
+Before installing the APK:
+
+- Use Android 16 or newer
+- Disable Play Protect during installation
+
+## Discussion
+
+For feature discussions, testing notes, and development topics, use the LiveBridge Telegram topics:
+
+- https://t.me/livebridge_dev
+
 ## For Users
 
 LiveBridge is made for users first. You do not need to build the project yourself unless you want to contribute or test version changes.
@@ -101,6 +112,15 @@ For stable behavior, the app usually needs:
 
 - Feel free to open issues or pull requests. LiveBridge is under active development
 - Testing on multiple OEMs is highly recommended
+
+## License
+
+LiveBridge is licensed under GPL-3.0-or-later. See [LICENSE](LICENSE).
+
+Redistributed builds, forks, and modified versions must preserve the attribution
+notice in [NOTICE](NOTICE), clearly identify themselves as based on the original
+LiveBridge project, and provide corresponding source code when distributing
+APK builds or other binaries.
 
 ## Credits
 

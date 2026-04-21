@@ -1,0 +1,138 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../../l10n/app_strings.dart';
+import '../../platform/livebridge_platform.dart';
+import '../../theme/livebridge_tokens.dart';
+import '../../utils/livebridge_haptics.dart';
+import '../../widgets/redesign/lb_detail_screen.dart';
+import '../../widgets/redesign/lb_list_component.dart';
+
+class RulesMiscellaneousScreen extends StatefulWidget {
+  const RulesMiscellaneousScreen({super.key});
+
+  @override
+  State<RulesMiscellaneousScreen> createState() =>
+      _RulesMiscellaneousScreenState();
+}
+
+class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
+  bool _navigationEnabled = true;
+  bool _mediaPlaybackEnabled = true;
+  bool _weatherEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_loadState());
+    });
+  }
+
+  Future<void> _loadState() async {
+    try {
+      final Future<bool> navigationFuture =
+          LiveBridgePlatform.getSmartNavigationEnabled();
+      final Future<bool> mediaPlaybackFuture =
+          LiveBridgePlatform.getSmartMediaPlaybackEnabled();
+      final Future<bool> weatherFuture =
+          LiveBridgePlatform.getSmartWeatherEnabled();
+
+      final bool navigationEnabled = await navigationFuture;
+      final bool mediaPlaybackEnabled = await mediaPlaybackFuture;
+      final bool weatherEnabled = await weatherFuture;
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _navigationEnabled = navigationEnabled;
+        _mediaPlaybackEnabled = mediaPlaybackEnabled;
+        _weatherEnabled = weatherEnabled;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _setNavigationEnabled(bool value) async {
+    if (value == _navigationEnabled) {
+      return;
+    }
+    setState(() => _navigationEnabled = value);
+    await LiveBridgePlatform.setSmartNavigationEnabled(value);
+  }
+
+  Future<void> _setMediaPlaybackEnabled(bool value) async {
+    if (value == _mediaPlaybackEnabled) {
+      return;
+    }
+    setState(() => _mediaPlaybackEnabled = value);
+    await LiveBridgePlatform.setSmartMediaPlaybackEnabled(value);
+  }
+
+  Future<void> _setWeatherEnabled(bool value) async {
+    if (value == _weatherEnabled) {
+      return;
+    }
+    setState(() => _weatherEnabled = value);
+    await LiveBridgePlatform.setSmartWeatherEnabled(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppStrings strings = AppStrings.of(context);
+    final List<LbListItemData> items = <LbListItemData>[
+      LbListItemData(
+        title: strings.navigationMapsTitle,
+        showChevron: false,
+        toggleValue: _navigationEnabled,
+        onToggle: (bool value) {
+          unawaited(_setNavigationEnabled(value));
+        },
+        onTap: () {
+          final bool nextValue = !_navigationEnabled;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setNavigationEnabled(nextValue));
+        },
+      ),
+      LbListItemData(
+        title: strings.mediaPlaybackRedesignTitle,
+        showChevron: false,
+        toggleValue: _mediaPlaybackEnabled,
+        onToggle: (bool value) {
+          unawaited(_setMediaPlaybackEnabled(value));
+        },
+        onTap: () {
+          final bool nextValue = !_mediaPlaybackEnabled;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setMediaPlaybackEnabled(nextValue));
+        },
+      ),
+      LbListItemData(
+        title: strings.weatherBroadcastsTitle,
+        showChevron: false,
+        toggleValue: _weatherEnabled,
+        onToggle: (bool value) {
+          unawaited(_setWeatherEnabled(value));
+        },
+        onTap: () {
+          final bool nextValue = !_weatherEnabled;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setWeatherEnabled(nextValue));
+        },
+      ),
+    ];
+
+    return LbDetailScreen(
+      title: strings.miscellaneousTitle,
+      children: <Widget>[
+        LbListComponent(
+          items: items,
+          rowHeight: LbSpacing.recentRowHeight,
+          extendDividersToEnd: true,
+        ),
+      ],
+    );
+  }
+}

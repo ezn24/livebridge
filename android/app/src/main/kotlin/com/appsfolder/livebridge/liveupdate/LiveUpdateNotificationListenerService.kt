@@ -1,5 +1,6 @@
 package com.appsfolder.livebridge.liveupdate
 
+import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
 import android.os.Build
@@ -177,7 +178,45 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
 
     private fun processIncomingNotification(sbn: StatusBarNotification) {
         val result = LiveUpdateNotifier.maybeMirror(applicationContext, prefs, sbn)
+        if (result.mirrored) {
+            ConversionLogStore.upsertMirroredNotification(
+                context = applicationContext,
+                prefs = prefs,
+                sbn = sbn,
+                title = extractLogTitle(sbn),
+                text = extractLogText(sbn.notification)
+            )
+        }
         maybeDismissOriginalSource(sbn, result)
+    }
+
+    private fun extractLogTitle(sbn: StatusBarNotification): String {
+        val extras = sbn.notification.extras
+        return extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString()?.trim()
+                ?.takeIf { it.isNotEmpty() }
+            ?: runCatching {
+                val appInfo = packageManager.getApplicationInfo(sbn.packageName, 0)
+                packageManager.getApplicationLabel(appInfo)?.toString()?.trim()
+            }.getOrNull().takeUnless { it.isNullOrBlank() }
+            ?: sbn.packageName
+    }
+
+    private fun extractLogText(notification: android.app.Notification): String {
+        val extras = notification.extras
+        return extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim()
+                ?.takeIf { it.isNotEmpty() }
+            ?: extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim()
+                ?.takeIf { it.isNotEmpty() }
+            ?: extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString()?.trim()
+                ?.takeIf { it.isNotEmpty() }
+            ?: extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+                ?.mapNotNull { it?.toString()?.trim()?.takeIf(String::isNotEmpty) }
+                ?.joinToString("\n")
+                .orEmpty()
     }
 
     private fun maybeDismissOriginalSource(
@@ -187,21 +226,23 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
         if (!result.mirrored) {
             return
         }
-        if (!prefs.getNotificationDedupEnabled()) {
-            return
-        }
         if (!sbn.isClearable) {
             return
         }
-        if (!prefs.isNotificationDedupPackageAllowed(sbn.packageName)) {
-            return
-        }
-        val shouldDismiss = when (prefs.getNotificationDedupMode()) {
-            "otp_only" -> result.dedupKind == LiveUpdateNotifier.MirrorDedupKind.OTP
-            else -> {
-                result.dedupKind == LiveUpdateNotifier.MirrorDedupKind.OTP ||
-                        result.dedupKind == LiveUpdateNotifier.MirrorDedupKind.STATUS
+        val appPresentationRemoveOriginal = AppPresentationOverridesLoader
+            .get(prefs)
+            .resolve(sbn.packageName.lowercase())
+            .removeOriginalMessage
+        val shouldDismiss = appPresentationRemoveOriginal || when (result.dedupKind) {
+            LiveUpdateNotifier.MirrorDedupKind.OTP -> {
+                prefs.getOtpRemoveOriginalMessageEnabled() &&
+                    prefs.isOtpPackageAllowed(sbn.packageName)
             }
+            LiveUpdateNotifier.MirrorDedupKind.STATUS -> {
+                prefs.getSmartRemoveOriginalMessageEnabled() &&
+                    prefs.isSmartPackageAllowed(sbn.packageName)
+            }
+            else -> false
         }
         if (!shouldDismiss) {
             return
