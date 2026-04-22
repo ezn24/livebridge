@@ -5,6 +5,7 @@ class AppStrings {
   final Locale locale;
 
   bool get isRu => locale.languageCode.toLowerCase().startsWith('ru');
+  bool get isTr => locale.languageCode.toLowerCase().startsWith('tr');
   bool get isZhHans {
     final String languageCode = locale.languageCode.toLowerCase();
     if (languageCode != 'zh') return false;
@@ -27,10 +28,12 @@ class AppStrings {
   String tr({
     required String en,
     required String ru,
+    String? tr,
     String? zhHans,
     String? zhHant,
   }) {
     if (isRu) return ru;
+    if (isTr) return tr ?? en;
     if (isZhHant) return zhHant ?? zhHans ?? en;
     if (isZhHans) return zhHans ?? zhHant ?? en;
     return en;
@@ -40,12 +43,18 @@ class AppStrings {
     return AppStrings(locale: Localizations.localeOf(context));
   }
 
-  String get refresh =>
-      tr(en: 'Refresh', ru: 'Обновить', zhHans: '刷新', zhHant: '重新整理');
+  String get refresh => tr(
+    en: 'Refresh',
+    ru: 'Обновить',
+    tr: 'Yenile',
+    zhHans: '刷新',
+    zhHant: '重新整理',
+  );
 
   String get permissionGranted => tr(
     en: 'Notification permission granted.',
     ru: 'Разрешение на уведомления выдано.',
+    tr: 'Bildirim izni verildi.',
     zhHans: '通知权限已授予。',
     zhHant: '通知權限已授予。',
   );
@@ -53,6 +62,7 @@ class AppStrings {
   String get permissionDenied => tr(
     en: 'Notification permission was not granted.',
     ru: 'Разрешение на уведомления не выдано.',
+    tr: 'Bildirim izni verilmedi.',
     zhHans: '未授予通知权限。',
     zhHant: '未授予通知權限。',
   );
@@ -60,6 +70,7 @@ class AppStrings {
   String get listenerUnavailable => tr(
     en: 'Unable to open Listener settings on this device.',
     ru: 'Не удалось открыть настройки Listener.',
+    tr: 'Bu cihazda Listener ayarları açılamıyor.',
     zhHans: '此设备无法打开监听器设置。',
     zhHant: '此裝置無法開啟監聽器設定。',
   );
@@ -67,6 +78,7 @@ class AppStrings {
   String get notificationsUnavailable => tr(
     en: 'Unable to open app notification settings.',
     ru: 'Не удалось открыть настройки уведомлений.',
+    tr: 'Uygulama bildirim ayarları açılamıyor.',
     zhHans: '无法打开应用通知设置。',
     zhHant: '無法開啟應用通知設定。',
   );
@@ -74,6 +86,7 @@ class AppStrings {
   String get liveUpdatesUnavailable => tr(
     en: 'Unable to open Live Updates settings on this device.',
     ru: 'Не удалось открыть настройки Live Updates.',
+    tr: 'Bu cihazda Live Updates ayarları açılamıyor.',
     zhHans: '此设备无法打开 Live Updates 设置。',
     zhHant: '此裝置無法開啟 Live Updates 設定。',
   );
@@ -81,6 +94,7 @@ class AppStrings {
   String get githubOpenFailed => tr(
     en: 'Unable to open GitHub link.',
     ru: 'Не удалось открыть ссылку GitHub.',
+    tr: 'GitHub bağlantısı açılamıyor.',
     zhHans: '无法打开 GitHub 链接。',
     zhHant: '無法開啟 GitHub 連結。',
   );
@@ -88,6 +102,7 @@ class AppStrings {
   String get linkOpenFailed => tr(
     en: 'Unable to open link.',
     ru: 'Не удалось открыть ссылку.',
+    tr: 'Bağlantı açılamıyor.',
     zhHans: '无法打开链接。',
     zhHant: '無法開啟連結。',
   );
@@ -95,6 +110,7 @@ class AppStrings {
   String get updateCheckFailed => tr(
     en: 'Unable to check updates. Try disabling VPN.',
     ru: 'Не удалось проверить обновления. Попробуйте отключить VPN.',
+    tr: 'Güncellemeler denetlenemiyor. VPN\'i kapatmayı deneyin.',
     zhHans: '无法检查更新。请尝试关闭 VPN。',
     zhHant: '無法檢查更新。請嘗試關閉 VPN。',
   );
@@ -102,6 +118,7 @@ class AppStrings {
   String get dictionaryEmpty => tr(
     en: 'Dictionary is empty or invalid.',
     ru: 'Словарь пустой или поврежден.',
+    tr: 'Sözlük boş veya geçersiz.',
     zhHans: '词典为空或无效。',
     zhHant: '字典為空或無效。',
   );
@@ -109,6 +126,7 @@ class AppStrings {
   String get dictionaryUpdateDone => tr(
     en: 'Dictionary updated from GitHub.',
     ru: 'Словарь обновлен из GitHub.',
+    tr: 'Sözlük GitHub\'dan güncellendi.',
     zhHans: '词典已从 GitHub 更新。',
     zhHant: '字典已從 GitHub 更新。',
   );
@@ -116,6 +134,7 @@ class AppStrings {
   String get dictionaryInvalid => tr(
     en: 'Invalid dictionary JSON.',
     ru: 'Невалидный JSON словаря.',
+    tr: 'Geçersiz sözlük JSON\'u.',
     zhHans: '词典 JSON 无效。',
     zhHant: '字典 JSON 無效。',
   );
@@ -123,16 +142,23 @@ class AppStrings {
   String get dictionaryUpdateFailed => tr(
     en: 'Failed to update dictionary from GitHub.',
     ru: 'Не удалось обновить словарь из GitHub.',
+    tr: 'Sözlük GitHub\'dan güncellenemedi.',
     zhHans: '从 GitHub 更新词典失败。',
     zhHant: '從 GitHub 更新字典失敗。',
   );
 
-  String get dictionaryTitle =>
-      tr(en: 'Dictionary', ru: 'Словарь', zhHans: '词典', zhHant: '字典');
+  String get dictionaryTitle => tr(
+    en: 'Dictionary',
+    ru: 'Словарь',
+    tr: 'Sözlük',
+    zhHans: '词典',
+    zhHant: '字典',
+  );
 
   String get dictionaryManageSubtitle => tr(
     en: 'tap to manage',
     ru: 'нажмите для управления',
+    tr: 'yönetmek için dokunun',
     zhHans: '点按以管理',
     zhHant: '點按以管理',
   );
@@ -140,6 +166,7 @@ class AppStrings {
   String get dictionaryLanguagesTitle => tr(
     en: 'Dictionary languages',
     ru: 'Языки словаря',
+    tr: 'Sözlük dilleri',
     zhHans: '词典语言',
     zhHant: '字典語言',
   );
@@ -147,6 +174,7 @@ class AppStrings {
   String get dictionaryLanguagesSubtitle => tr(
     en: 'tap to choose',
     ru: 'нажмите для выбора',
+    tr: 'seçmek için dokunun',
     zhHans: '点按以选择',
     zhHant: '點按以選擇',
   );
@@ -154,6 +182,7 @@ class AppStrings {
   String get dictionaryLanguagesPickerTitle => tr(
     en: 'Select languages for conversion',
     ru: 'Выберите языки для конвертации',
+    tr: 'Dönüştürme için dilleri seçin',
     zhHans: '选择用于转换的语言',
     zhHant: '選擇用於轉換的語言',
   );
@@ -161,6 +190,7 @@ class AppStrings {
   String get dictionaryUpdateAction => tr(
     en: 'Update dictionaries',
     ru: 'Обновить словари',
+    tr: 'Sözlükleri güncelle',
     zhHans: '更新词典',
     zhHant: '更新字典',
   );
@@ -168,6 +198,7 @@ class AppStrings {
   String get dictionaryEditorTitle => tr(
     en: 'Dictionary editor',
     ru: 'Редактор словаря',
+    tr: 'Sözlük düzenleyici',
     zhHans: '词典编辑器',
     zhHant: '字典編輯器',
   );
@@ -175,24 +206,42 @@ class AppStrings {
   String get dictionaryComingSoon => tr(
     en: '(coming soon)',
     ru: '(скоро)',
+    tr: '(yakında)',
     zhHans: '（即将推出）',
     zhHant: '（即將推出）',
   );
 
-  String get navHome => tr(en: 'Home', ru: 'Домой', zhHans: '主页', zhHant: '首頁');
+  String get navHome =>
+      tr(en: 'Home', ru: 'Домой', tr: 'Ana sayfa', zhHans: '主页', zhHant: '首頁');
 
-  String get navRules =>
-      tr(en: 'Rules', ru: 'Правила', zhHans: '规则', zhHant: '規則');
+  String get navRules => tr(
+    en: 'Rules',
+    ru: 'Правила',
+    tr: 'Kurallar',
+    zhHans: '规则',
+    zhHant: '規則',
+  );
 
-  String get navSettings =>
-      tr(en: 'Settings', ru: 'Настройки', zhHans: '设置', zhHant: '設定');
+  String get navSettings => tr(
+    en: 'Settings',
+    ru: 'Настройки',
+    tr: 'Ayarlar',
+    zhHans: '设置',
+    zhHant: '設定',
+  );
 
-  String get redesignRulesTitle =>
-      tr(en: 'Rules', ru: 'Правила', zhHans: '规则', zhHant: '規則');
+  String get redesignRulesTitle => tr(
+    en: 'Rules',
+    ru: 'Правила',
+    tr: 'Kurallar',
+    zhHans: '规则',
+    zhHant: '規則',
+  );
 
   String get appConfigTitle => tr(
     en: 'App config',
     ru: 'Настройки приложения',
+    tr: 'Uygulama yapılandırması',
     zhHans: '应用配置',
     zhHant: '應用配置',
   );
@@ -200,6 +249,7 @@ class AppStrings {
   String get brandSpecificTitle => tr(
     en: 'Brand-specific',
     ru: 'Особенности бренда',
+    tr: 'Markaya özel',
     zhHans: '品牌特定',
     zhHant: '品牌特定',
   );
@@ -207,6 +257,7 @@ class AppStrings {
   String get appUpdatesTitle => tr(
     en: 'App updates',
     ru: 'Обновления приложения',
+    tr: 'Uygulama güncellemeleri',
     zhHans: '应用更新',
     zhHant: '應用更新',
   );
@@ -214,6 +265,7 @@ class AppStrings {
   String get statusRunning => tr(
     en: 'LiveBridge is running',
     ru: 'LiveBridge запущен',
+    tr: 'LiveBridge çalışıyor',
     zhHans: 'LiveBridge 正在运行',
     zhHant: 'LiveBridge 正在執行',
   );
@@ -221,26 +273,34 @@ class AppStrings {
   String get statusDisabled => tr(
     en: 'LiveBridge is disabled',
     ru: 'LiveBridge выключен',
+    tr: 'LiveBridge devre dışı',
     zhHans: 'LiveBridge 已关闭',
     zhHant: 'LiveBridge 已關閉',
   );
 
   String get statusByPrefix =>
-      tr(en: 'by ', ru: 'by ', zhHans: 'by ', zhHant: 'by ');
+      tr(en: 'by ', ru: 'by ', tr: 'by ', zhHans: 'by ', zhHant: 'by ');
 
   String rulesCount(int count) => tr(
     en: '$count Rules',
     ru: '$count правил',
+    tr: '$count kural',
     zhHans: '$count 条规则',
     zhHant: '$count 條規則',
   );
 
-  String get discussTitle =>
-      tr(en: 'Discuss', ru: 'Discuss', zhHans: '讨论', zhHant: '討論');
+  String get discussTitle => tr(
+    en: 'Discuss',
+    ru: 'Discuss',
+    tr: 'Tartış',
+    zhHans: '讨论',
+    zhHant: '討論',
+  );
 
   String get discussSubtitle => tr(
     en: 'telegram topics',
     ru: 'telegram topics',
+    tr: 'telegram konuları',
     zhHans: 'telegram 话题',
     zhHant: 'telegram 話題',
   );
@@ -248,6 +308,7 @@ class AppStrings {
   String get rulesModeAllApps => tr(
     en: 'all apps',
     ru: 'все приложения',
+    tr: 'tüm uygulamalar',
     zhHans: '所有应用',
     zhHant: '所有應用程式',
   );
@@ -255,6 +316,7 @@ class AppStrings {
   String get rulesModeOnlySelected => tr(
     en: 'only selected',
     ru: 'только выбранные',
+    tr: 'yalnızca seçilenler',
     zhHans: '仅已选择',
     zhHant: '僅已選取',
   );
@@ -262,6 +324,7 @@ class AppStrings {
   String get rulesModeExcludeSelected => tr(
     en: 'exclude selected',
     ru: 'исключая выбранные',
+    tr: 'seçilenleri hariç tut',
     zhHans: '排除已选择',
     zhHant: '排除已選取',
   );
@@ -269,16 +332,23 @@ class AppStrings {
   String get permissionCheckRequired => tr(
     en: 'check required',
     ru: 'нужно проверить',
+    tr: 'kontrol gerekli',
     zhHans: '需要检查',
     zhHant: '需要檢查',
   );
 
-  String get permissionsAllSet =>
-      tr(en: 'all set', ru: 'всё готово', zhHans: '已就绪', zhHant: '已就緒');
+  String get permissionsAllSet => tr(
+    en: 'all set',
+    ru: 'всё готово',
+    tr: 'hazır',
+    zhHans: '已就绪',
+    zhHant: '已就緒',
+  );
 
   String get versionTapToUpdate => tr(
     en: 'tap to update',
     ru: 'нажмите для обновления',
+    tr: 'güncellemek için dokunun',
     zhHans: '点按更新',
     zhHant: '點按更新',
   );
@@ -286,6 +356,7 @@ class AppStrings {
   String get versionLatestVersion => tr(
     en: 'latest version',
     ru: 'последняя версия',
+    tr: 'son sürüm',
     zhHans: '最新版本',
     zhHant: '最新版本',
   );
@@ -293,6 +364,7 @@ class AppStrings {
   String get recentConversions => tr(
     en: 'Recent conversions',
     ru: 'Последние конвертации',
+    tr: 'Son dönüştürmeler',
     zhHans: '最近转换',
     zhHant: '最近轉換',
   );
@@ -300,6 +372,7 @@ class AppStrings {
   String get noConversionsYet => tr(
     en: 'no conversions yet',
     ru: 'конвертаций пока нет',
+    tr: 'henüz dönüştürme yok',
     zhHans: '暂无转换',
     zhHant: '暫無轉換',
   );
@@ -307,36 +380,55 @@ class AppStrings {
   String get conversionLogDisabled => tr(
     en: 'conversion log is disabled',
     ru: 'лог конвертаций выключен',
+    tr: 'dönüştürme günlüğü kapalı',
     zhHans: '转换日志已关闭',
     zhHant: '轉換記錄已關閉',
   );
 
-  String get enable =>
-      tr(en: 'enable', ru: 'включить', zhHans: '启用', zhHant: '啟用');
+  String get enable => tr(
+    en: 'enable',
+    ru: 'включить',
+    tr: 'etkinleştir',
+    zhHans: '启用',
+    zhHant: '啟用',
+  );
 
   String get payloadCopied => tr(
     en: 'Payload copied',
     ru: 'Payload скопирован',
+    tr: 'Payload kopyalandı',
     zhHans: 'Payload 已复制',
     zhHant: 'Payload 已複製',
   );
 
-  String get progressTitle =>
-      tr(en: 'Progress', ru: 'Прогресс', zhHans: '进度', zhHant: '進度');
+  String get progressTitle => tr(
+    en: 'Progress',
+    ru: 'Прогресс',
+    tr: 'İlerleme',
+    zhHans: '进度',
+    zhHant: '進度',
+  );
 
   String get nativeProgressTitle => tr(
     en: 'Native progress',
     ru: 'Нативный прогресс',
+    tr: 'Yerel ilerleme',
     zhHans: '原生进度',
     zhHant: '原生進度',
   );
 
-  String get otpCodesTitle =>
-      tr(en: 'OTP codes', ru: 'OTP-коды', zhHans: 'OTP 验证码', zhHant: 'OTP 驗證碼');
+  String get otpCodesTitle => tr(
+    en: 'OTP codes',
+    ru: 'OTP-коды',
+    tr: 'OTP kodları',
+    zhHans: 'OTP 验证码',
+    zhHant: 'OTP 驗證碼',
+  );
 
   String get autoCopyCodeTitle => tr(
     en: 'Auto-copy code',
     ru: 'Автокопирование кода',
+    tr: 'Kodu otomatik kopyala',
     zhHans: '自动复制验证码',
     zhHant: '自動複製驗證碼',
   );
@@ -344,29 +436,42 @@ class AppStrings {
   String get smartConversionTitle => tr(
     en: 'Smart conversion',
     ru: 'Умная конвертация',
+    tr: 'Akıllı dönüştürme',
     zhHans: '智能转换',
     zhHant: '智慧轉換',
   );
 
   String get taxiTitle =>
-      tr(en: 'Taxi', ru: 'Такси', zhHans: '打车', zhHant: '叫車');
+      tr(en: 'Taxi', ru: 'Такси', tr: 'Taksi', zhHans: '打车', zhHant: '叫車');
 
-  String get deliveriesTitle =>
-      tr(en: 'Deliveries', ru: 'Доставки', zhHans: '外卖', zhHant: '外送');
+  String get deliveriesTitle => tr(
+    en: 'Deliveries',
+    ru: 'Доставки',
+    tr: 'Teslimatlar',
+    zhHans: '外卖',
+    zhHant: '外送',
+  );
 
   String get removeOriginalMessageTitle => tr(
     en: 'Remove original message',
     ru: 'Удалять исходное уведомление',
+    tr: 'Orijinal bildirimi kaldır',
     zhHans: '移除原始通知',
     zhHant: '移除原始通知',
   );
 
-  String get experimentalSuffix =>
-      tr(en: '(exp)', ru: '(exp)', zhHans: '（实验）', zhHant: '（實驗）');
+  String get experimentalSuffix => tr(
+    en: '(exp)',
+    ru: '(exp)',
+    tr: '(deneysel)',
+    zhHans: '（实验）',
+    zhHant: '（實驗）',
+  );
 
   String get allAppsTitle => tr(
     en: 'All apps',
     ru: 'Все приложения',
+    tr: 'Tüm uygulamalar',
     zhHans: '所有应用',
     zhHant: '所有應用程式',
   );
@@ -374,6 +479,7 @@ class AppStrings {
   String get onlySelectedTitle => tr(
     en: 'Only selected',
     ru: 'Только выбранные',
+    tr: 'Yalnızca seçilenler',
     zhHans: '仅已选择',
     zhHant: '僅已選取',
   );
@@ -381,6 +487,7 @@ class AppStrings {
   String get excludeSelectedTitle => tr(
     en: 'Exclude selected',
     ru: 'Исключить выбранные',
+    tr: 'Seçilenleri hariç tut',
     zhHans: '排除已选择',
     zhHant: '排除已選取',
   );
@@ -388,6 +495,7 @@ class AppStrings {
   String get conversionModeTitle => tr(
     en: 'Conversion mode',
     ru: 'Режим конвертации',
+    tr: 'Dönüştürme modu',
     zhHans: '转换模式',
     zhHant: '轉換模式',
   );
@@ -395,6 +503,7 @@ class AppStrings {
   String get selectedAppsTitle => tr(
     en: 'Selected apps',
     ru: 'Приложения',
+    tr: 'Seçili uygulamalar',
     zhHans: '已选择应用',
     zhHant: '已選取應用程式',
   );
@@ -402,6 +511,7 @@ class AppStrings {
   String get showSystem => tr(
     en: 'show system',
     ru: 'показать системные',
+    tr: 'sistem uygulamalarını göster',
     zhHans: '显示系统',
     zhHant: '顯示系統',
   );
@@ -409,6 +519,7 @@ class AppStrings {
   String get hideSystem => tr(
     en: 'hide system',
     ru: 'скрыть системные',
+    tr: 'sistem uygulamalarını gizle',
     zhHans: '隐藏系统',
     zhHant: '隱藏系統',
   );
@@ -416,16 +527,18 @@ class AppStrings {
   String get networkConnectionsTitle => tr(
     en: 'Network & Connections',
     ru: 'Сеть и подключения',
+    tr: 'Ağ ve Bağlantılar',
     zhHans: '网络与连接',
     zhHant: '網路與連線',
   );
 
   String get vpnsTitle =>
-      tr(en: 'VPNs', ru: 'VPN', zhHans: 'VPN', zhHant: 'VPN');
+      tr(en: 'VPNs', ru: 'VPN', tr: 'VPN\'ler', zhHans: 'VPN', zhHant: 'VPN');
 
   String get externalDevicesTitle => tr(
     en: 'External devices',
     ru: 'Внешние устройства',
+    tr: 'Harici cihazlar',
     zhHans: '外接设备',
     zhHant: '外接裝置',
   );
@@ -433,6 +546,7 @@ class AppStrings {
   String get ignoreDebuggingDevicesTitle => tr(
     en: 'Ignore debugging devices',
     ru: 'Игнорировать отладочные устройства',
+    tr: 'Hata ayıklama cihazlarını yok say',
     zhHans: '忽略调试设备',
     zhHant: '忽略偵錯裝置',
   );
@@ -440,46 +554,66 @@ class AppStrings {
   String get networkSpeedThresholdRedesignTitle => tr(
     en: 'Network speed threshold',
     ru: 'Порог скорости сети',
+    tr: 'Ağ hızı eşiği',
     zhHans: '网速阈值',
     zhHant: '網速門檻',
   );
 
-  String get miscellaneousTitle =>
-      tr(en: 'Miscellaneous', ru: 'Разное', zhHans: '其他', zhHant: '其他');
+  String get miscellaneousTitle => tr(
+    en: 'Miscellaneous',
+    ru: 'Разное',
+    tr: 'Diğer',
+    zhHans: '其他',
+    zhHant: '其他',
+  );
 
   String get navigationMapsTitle => tr(
     en: 'Navigation (maps)',
     ru: 'Навигация (карты)',
+    tr: 'Navigasyon (haritalar)',
     zhHans: '导航（地图）',
     zhHant: '導航（地圖）',
   );
 
-  String get mediaPlaybackRedesignTitle =>
-      tr(en: 'Media playback', ru: 'Медиа', zhHans: '媒体播放', zhHant: '媒體播放');
+  String get mediaPlaybackRedesignTitle => tr(
+    en: 'Media playback',
+    ru: 'Медиа',
+    tr: 'Medya oynatma',
+    zhHans: '媒体播放',
+    zhHant: '媒體播放',
+  );
 
   String get weatherBroadcastsTitle => tr(
     en: 'Weather broadcasts',
     ru: 'Погодные уведомления',
+    tr: 'Hava durumu bildirimleri',
     zhHans: '天气播报',
     zhHant: '天氣播報',
   );
 
   String get bypassTitle =>
-      tr(en: 'Bypass', ru: 'Bypass', zhHans: '绕过', zhHant: '繞過');
+      tr(en: 'Bypass', ru: 'Bypass', tr: 'Bypass', zhHans: '绕过', zhHant: '繞過');
 
   String get perAppSettingsTitle => tr(
     en: 'Per-app settings',
     ru: 'Настройки приложений',
+    tr: 'Uygulama bazlı ayarlar',
     zhHans: '按应用设置',
     zhHant: '各應用設定',
   );
 
-  String get defaultsTitle =>
-      tr(en: 'Defaults', ru: 'По умолчанию', zhHans: '默认值', zhHant: '預設值');
+  String get defaultsTitle => tr(
+    en: 'Defaults',
+    ru: 'По умолчанию',
+    tr: 'Varsayılanlar',
+    zhHans: '默认值',
+    zhHant: '預設值',
+  );
 
   String get defaultsSubtitle => tr(
     en: 'tap to change default behavior',
     ru: 'нажмите, чтобы изменить поведение',
+    tr: 'varsayılan davranışı değiştirmek için dokunun',
     zhHans: '点按更改默认行为',
     zhHant: '點按變更預設行為',
   );
@@ -487,19 +621,31 @@ class AppStrings {
   String get appsListTitle => tr(
     en: 'Apps list',
     ru: 'Список приложений',
+    tr: 'Uygulama listesi',
     zhHans: '应用列表',
     zhHant: '應用程式清單',
   );
 
-  String get exportLabel =>
-      tr(en: 'Export', ru: 'Экспорт', zhHans: '导出', zhHant: '匯出');
+  String get exportLabel => tr(
+    en: 'Export',
+    ru: 'Экспорт',
+    tr: 'Dışa aktar',
+    zhHans: '导出',
+    zhHant: '匯出',
+  );
 
-  String get importLabel =>
-      tr(en: 'Import', ru: 'Импорт', zhHans: '导入', zhHant: '匯入');
+  String get importLabel => tr(
+    en: 'Import',
+    ru: 'Импорт',
+    tr: 'İçe aktar',
+    zhHans: '导入',
+    zhHant: '匯入',
+  );
 
   String get titleSourceTitle => tr(
     en: 'Title source',
     ru: 'Источник заголовка',
+    tr: 'Başlık kaynağı',
     zhHans: '标题来源',
     zhHant: '標題來源',
   );
@@ -507,6 +653,7 @@ class AppStrings {
   String get contentSourceTitle => tr(
     en: 'Content source',
     ru: 'Источник контента',
+    tr: 'İçerik kaynağı',
     zhHans: '内容来源',
     zhHant: '內容來源',
   );
@@ -514,6 +661,7 @@ class AppStrings {
   String get notificationTitleOption => tr(
     en: 'Notification title',
     ru: 'Заголовок уведомления',
+    tr: 'Bildirim başlığı',
     zhHans: '通知标题',
     zhHant: '通知標題',
   );
@@ -521,6 +669,7 @@ class AppStrings {
   String get appTitleOption => tr(
     en: 'App title',
     ru: 'Название приложения',
+    tr: 'Uygulama başlığı',
     zhHans: '应用标题',
     zhHant: '應用標題',
   );
@@ -528,6 +677,7 @@ class AppStrings {
   String get notificationTextOption => tr(
     en: 'Notification text',
     ru: 'Текст уведомления',
+    tr: 'Bildirim metni',
     zhHans: '通知文本',
     zhHant: '通知文字',
   );
@@ -535,6 +685,7 @@ class AppStrings {
   String get appUpdateNewVersionTitle => tr(
     en: 'New version available',
     ru: 'Доступна новая версия',
+    tr: 'Yeni sürüm mevcut',
     zhHans: '有新版本可用',
     zhHant: '有新版本可用',
   );
@@ -542,6 +693,7 @@ class AppStrings {
   String get appUpdateCheckingTitle => tr(
     en: 'Checking for updates',
     ru: 'Проверяем обновления',
+    tr: 'Güncellemeler denetleniyor',
     zhHans: '正在检查更新',
     zhHant: '正在檢查更新',
   );
@@ -549,6 +701,7 @@ class AppStrings {
   String get appUpdateAllSetTitle => tr(
     en: 'You’re all set',
     ru: 'Всё готово',
+    tr: 'Her şey hazır',
     zhHans: '已是最新',
     zhHant: '已是最新',
   );
@@ -556,6 +709,7 @@ class AppStrings {
   String get appUpdateDownloadsSubtitle => tr(
     en: 'tap to go to downloads',
     ru: 'перейти к загрузке',
+    tr: 'indirmelere gitmek için dokunun',
     zhHans: '点按前往下载',
     zhHant: '點按前往下載',
   );
@@ -563,6 +717,7 @@ class AppStrings {
   String get appUpdatePleaseWaitSubtitle => tr(
     en: 'please wait a moment',
     ru: 'подождите немного',
+    tr: 'lütfen biraz bekleyin',
     zhHans: '请稍等',
     zhHant: '請稍候',
   );
@@ -570,6 +725,7 @@ class AppStrings {
   String get appUpdateLatestSubtitle => tr(
     en: 'latest version already',
     ru: 'установлена последняя версия',
+    tr: 'zaten son sürüm',
     zhHans: '已经是最新版本',
     zhHant: '已是最新版本',
   );
@@ -577,6 +733,7 @@ class AppStrings {
   String get visitProjectPageTitle => tr(
     en: 'Visit project page',
     ru: 'Открыть страницу проекта',
+    tr: 'Proje sayfasını aç',
     zhHans: '访问项目页面',
     zhHant: '前往專案頁面',
   );
@@ -584,6 +741,7 @@ class AppStrings {
   String get visitGithubTitle => tr(
     en: 'Visit GitHub',
     ru: 'Открыть GitHub',
+    tr: 'GitHub\'ı aç',
     zhHans: '访问 GitHub',
     zhHant: '前往 GitHub',
   );
@@ -591,6 +749,7 @@ class AppStrings {
   String get updateProfileNewVersionTitle => tr(
     en: 'New version available',
     ru: 'Доступна новая версия',
+    tr: 'Yeni sürüm mevcut',
     zhHans: '有新版本可用',
     zhHant: '有新版本可用',
   );
@@ -598,6 +757,7 @@ class AppStrings {
   String updateProfileVersionSubtitle(String current, String latest) => tr(
     en: '$current -> $latest | tap to see',
     ru: '$current -> $latest | посмотреть',
+    tr: '$current -> $latest | görmek için dokunun',
     zhHans: '$current -> $latest | 点按查看',
     zhHant: '$current -> $latest | 點按查看',
   );
@@ -605,6 +765,7 @@ class AppStrings {
   String get updateProfileAvailableSubtitle => tr(
     en: 'update available | tap to see',
     ru: 'доступно обновление | посмотреть',
+    tr: 'güncelleme mevcut | görmek için dokunun',
     zhHans: '有可用更新 | 点按查看',
     zhHant: '有可用更新 | 點按查看',
   );
@@ -612,6 +773,7 @@ class AppStrings {
   String get updateProfileOpenSubtitle => tr(
     en: 'tap to open update settings',
     ru: 'нажмите для настройки',
+    tr: 'güncelleme ayarlarını açmak için dokunun',
     zhHans: '点按打开更新设置',
     zhHant: '點按開啟更新設定',
   );
@@ -619,29 +781,42 @@ class AppStrings {
   String get conversionLogTitle => tr(
     en: 'Conversion log',
     ru: 'Лог конвертаций',
+    tr: 'Dönüştürme günlüğü',
     zhHans: '转换日志',
     zhHant: '轉換記錄',
   );
 
-  String get logLengthTitle =>
-      tr(en: 'Log length', ru: 'Размер лога', zhHans: '日志大小', zhHant: '記錄大小');
+  String get logLengthTitle => tr(
+    en: 'Log length',
+    ru: 'Размер лога',
+    tr: 'Günlük boyutu',
+    zhHans: '日志大小',
+    zhHant: '記錄大小',
+  );
 
   String get xiaomiHyperIslandTitle => tr(
     en: 'Xiaomi HyperIsland',
     ru: 'Xiaomi HyperIsland',
+    tr: 'Xiaomi HyperIsland',
     zhHans: '小米 HyperIsland',
     zhHant: '小米 HyperIsland',
   );
 
   String get lengthTitle =>
-      tr(en: 'Length', ru: 'Длина', zhHans: '长度', zhHant: '長度');
+      tr(en: 'Length', ru: 'Длина', tr: 'Uzunluk', zhHans: '长度', zhHant: '長度');
 
-  String get otpDedupTitle =>
-      tr(en: 'OTP dedup', ru: 'OTP dedup', zhHans: 'OTP 去重', zhHant: 'OTP 去重');
+  String get otpDedupTitle => tr(
+    en: 'OTP dedup',
+    ru: 'OTP dedup',
+    tr: 'OTP tekilleştirme',
+    zhHans: 'OTP 去重',
+    zhHant: 'OTP 去重',
+  );
 
   String get smartConversionDedupTitle => tr(
     en: 'Smart conversion dedup',
     ru: 'Smart conversion dedup',
+    tr: 'Akıllı dönüştürme tekilleştirme',
     zhHans: '智能转换去重',
     zhHant: '智慧轉換去重',
   );
@@ -649,6 +824,7 @@ class AppStrings {
   String get animatedIslandRedesignTitle => tr(
     en: 'Animated Island',
     ru: 'Анимированный остров',
+    tr: 'Animasyonlu ada',
     zhHans: '动态岛动画',
     zhHant: '動態島動畫',
   );
@@ -656,6 +832,7 @@ class AppStrings {
   String get updateFrequencyTitle => tr(
     en: 'Update frequency',
     ru: 'Частота обновления',
+    tr: 'Güncelleme sıklığı',
     zhHans: '更新频率',
     zhHant: '更新頻率',
   );
@@ -663,6 +840,7 @@ class AppStrings {
   String get copyDebugJsonTitle => tr(
     en: 'Copy debug JSON',
     ru: 'Скопировать debug JSON',
+    tr: 'Debug JSON\'unu kopyala',
     zhHans: '复制调试 JSON',
     zhHant: '複製偵錯 JSON',
   );
@@ -670,6 +848,7 @@ class AppStrings {
   String get openGithubPageTitle => tr(
     en: 'Open GitHub page',
     ru: 'Открыть GitHub',
+    tr: 'GitHub sayfasını aç',
     zhHans: '打开 GitHub 页面',
     zhHant: '開啟 GitHub 頁面',
   );
@@ -677,6 +856,7 @@ class AppStrings {
   String get autoCopyDebugJsonTitle => tr(
     en: 'Auto-copy debug JSON',
     ru: 'Автокопирование debug JSON',
+    tr: 'Debug JSON\'unu otomatik kopyala',
     zhHans: '自动复制调试 JSON',
     zhHant: '自動複製偵錯 JSON',
   );
@@ -684,19 +864,31 @@ class AppStrings {
   String conversionLogFrom(String appLabel) => tr(
     en: 'from $appLabel',
     ru: 'от $appLabel',
+    tr: '$appLabel uygulamasından',
     zhHans: '来自 $appLabel',
     zhHant: '來自 $appLabel',
   );
 
-  String conversionLogAt(String time) =>
-      tr(en: 'at $time', ru: 'в $time', zhHans: time, zhHant: time);
+  String conversionLogAt(String time) => tr(
+    en: 'at $time',
+    ru: 'в $time',
+    tr: time,
+    zhHans: time,
+    zhHant: time,
+  );
 
-  String get conversionLogEntryTitleLabel =>
-      tr(en: 'Title', ru: 'Заголовок', zhHans: '标题', zhHant: '標題');
+  String get conversionLogEntryTitleLabel => tr(
+    en: 'Title',
+    ru: 'Заголовок',
+    tr: 'Başlık',
+    zhHans: '标题',
+    zhHant: '標題',
+  );
 
   String get payloadJsonTitle => tr(
     en: 'Payload JSON',
     ru: 'Payload JSON',
+    tr: 'Payload JSON',
     zhHans: 'Payload JSON',
     zhHant: 'Payload JSON',
   );
@@ -704,6 +896,7 @@ class AppStrings {
   String get loadingApps => tr(
     en: 'loading apps...',
     ru: 'загрузка приложений...',
+    tr: 'uygulamalar yükleniyor...',
     zhHans: '正在加载应用...',
     zhHant: '正在載入應用程式...',
   );
@@ -711,6 +904,7 @@ class AppStrings {
   String get searchForApps => tr(
     en: 'Search for apps...',
     ru: 'Поиск приложений...',
+    tr: 'Uygulama ara...',
     zhHans: '搜索应用...',
     zhHant: '搜尋應用程式...',
   );
@@ -720,6 +914,7 @@ class AppStrings {
   String get reportBug => tr(
     en: 'Report a bug',
     ru: 'Сообщить о баге',
+    tr: 'Hata bildir',
     zhHans: '报告问题',
     zhHant: '回報問題',
   );
@@ -727,6 +922,7 @@ class AppStrings {
   String get bugReportCopied => tr(
     en: 'Diagnostics copied to clipboard. Paste it into the issue.',
     ru: 'Диагностика скопирована в буфер. Вставьте в issue.',
+    tr: 'Tanılama panoya kopyalandı. Issue içine yapıştırın.',
     zhHans: '诊断信息已复制到剪贴板，请粘贴到 issue 中。',
     zhHant: '診斷資訊已複製到剪貼簿，請貼到 issue。',
   );
@@ -734,16 +930,23 @@ class AppStrings {
   String get bugReportCopyFailed => tr(
     en: 'Failed to copy diagnostics.',
     ru: 'Не удалось скопировать диагностику.',
+    tr: 'Tanılama kopyalanamadı.',
     zhHans: '复制诊断信息失败。',
     zhHant: '複製診斷資訊失敗。',
   );
 
-  String get accessTitle =>
-      tr(en: 'Permissions', ru: 'Разрешения', zhHans: '权限', zhHant: '權限');
+  String get accessTitle => tr(
+    en: 'Permissions',
+    ru: 'Разрешения',
+    tr: 'İzinler',
+    zhHans: '权限',
+    zhHant: '權限',
+  );
 
   String get listenerAccess => tr(
     en: 'Notification Listener access',
     ru: 'Доступ к уведомлениям',
+    tr: 'Bildirim dinleyicisi erişimi',
     zhHans: '通知监听访问',
     zhHant: '通知監聽存取',
   );
@@ -751,6 +954,7 @@ class AppStrings {
   String get postNotifications => tr(
     en: 'Post notifications permission',
     ru: 'Отправка уведомлений',
+    tr: 'Bildirim gönderme izni',
     zhHans: '发送通知权限',
     zhHant: '發送通知權限',
   );
@@ -758,26 +962,39 @@ class AppStrings {
   String get liveUpdatesAccess => tr(
     en: 'Live Updates promotion',
     ru: 'Продвижение Live Updates',
+    tr: 'Live Updates tanıtımı',
     zhHans: 'Live Updates 推送权限',
     zhHant: 'Live Updates 推送權限',
   );
 
-  String get settingsTitle =>
-      tr(en: 'Settings', ru: 'Настройки', zhHans: '设置', zhHant: '設定');
+  String get settingsTitle => tr(
+    en: 'Settings',
+    ru: 'Настройки',
+    tr: 'Ayarlar',
+    zhHans: '设置',
+    zhHant: '設定',
+  );
 
   String get keepAliveForegroundTitle => tr(
     en: 'Alt background mode',
     ru: 'Альтернативный фоновый режим',
+    tr: 'Alternatif arka plan modu',
     zhHans: '替代后台模式',
     zhHant: '替代背景模式',
   );
 
-  String get networkSpeedTitle =>
-      tr(en: 'Network speed', ru: 'Скорость сети', zhHans: '网速', zhHant: '網速');
+  String get networkSpeedTitle => tr(
+    en: 'Network speed',
+    ru: 'Скорость сети',
+    tr: 'Ağ hızı',
+    zhHans: '网速',
+    zhHant: '網速',
+  );
 
   String get networkSpeedThresholdAlways => tr(
     en: 'Always show',
     ru: 'Показывать всегда',
+    tr: 'Her zaman göster',
     zhHans: '始终显示',
     zhHant: '永遠顯示',
   );
@@ -785,6 +1002,7 @@ class AppStrings {
   String get syncDndTitle => tr(
     en: 'Sync DnD',
     ru: 'Синхронизировать DnD',
+    tr: 'DnD eşitle',
     zhHans: '同步勿扰',
     zhHant: '同步勿擾',
   );
@@ -792,6 +1010,7 @@ class AppStrings {
   String get updateChecksTitle => tr(
     en: 'Update checking',
     ru: 'Проверка обновлений',
+    tr: 'Güncelleme denetimi',
     zhHans: '检查更新',
     zhHant: '檢查更新',
   );
@@ -799,6 +1018,7 @@ class AppStrings {
   String get experimentalTitle => tr(
     en: 'Experimental',
     ru: 'Экспериментальное',
+    tr: 'Deneysel',
     zhHans: '实验功能',
     zhHant: '實驗功能',
   );
@@ -806,6 +1026,7 @@ class AppStrings {
   String get aospCuttingTitle => tr(
     en: 'AOSP cutting',
     ru: 'Обрезка AOSP',
+    tr: 'AOSP kırpma',
     zhHans: 'AOSP 裁剪',
     zhHant: 'AOSP 裁切',
   );
@@ -813,6 +1034,7 @@ class AppStrings {
   String get appPresentationSettings => tr(
     en: 'Per-app behavior',
     ru: 'Поведение приложений',
+    tr: 'Uygulama bazlı davranış',
     zhHans: '按应用行为',
     zhHant: '各應用行為',
   );
@@ -820,6 +1042,7 @@ class AppStrings {
   String get appPresentationLoadFailed => tr(
     en: 'Unable to load per-app settings.',
     ru: 'Не удалось загрузить настройки приложений.',
+    tr: 'Uygulama bazlı ayarlar yüklenemiyor.',
     zhHans: '无法加载按应用设置。',
     zhHant: '無法載入各應用設定。',
   );
@@ -827,6 +1050,7 @@ class AppStrings {
   String get appPresentationSaveFailed => tr(
     en: 'Unable to save per-app settings.',
     ru: 'Не удалось сохранить настройки приложений.',
+    tr: 'Uygulama bazlı ayarlar kaydedilemiyor.',
     zhHans: '无法保存按应用设置。',
     zhHant: '無法儲存各應用設定。',
   );
@@ -834,6 +1058,7 @@ class AppStrings {
   String get appPresentationDownloadFailed => tr(
     en: 'Failed to save settings JSON.',
     ru: 'Не удалось сохранить JSON настроек.',
+    tr: 'Ayarlar JSON\'u kaydedilemedi.',
     zhHans: '保存设置 JSON 失败。',
     zhHant: '儲存設定 JSON 失敗。',
   );
@@ -841,6 +1066,7 @@ class AppStrings {
   String get appPresentationSaved => tr(
     en: 'Settings saved to Downloads.',
     ru: 'Настройки сохранены в Загрузки.',
+    tr: 'Ayarlar İndirilenler klasörüne kaydedildi.',
     zhHans: '设置已保存到下载目录。',
     zhHant: '設定已儲存到下載資料夾。',
   );
@@ -848,6 +1074,7 @@ class AppStrings {
   String get appPresentationUploadDone => tr(
     en: 'Per-app settings imported.',
     ru: 'Настройки приложений загружены.',
+    tr: 'Uygulama bazlı ayarlar içe aktarıldı.',
     zhHans: '已导入按应用设置。',
     zhHant: '已匯入各應用設定。',
   );
@@ -855,6 +1082,7 @@ class AppStrings {
   String get appPresentationUploadFailed => tr(
     en: 'Failed to import settings JSON.',
     ru: 'Не удалось загрузить JSON настроек.',
+    tr: 'Ayarlar JSON\'u içe aktarılamadı.',
     zhHans: '导入设置 JSON 失败。',
     zhHant: '匯入設定 JSON 失敗。',
   );
@@ -862,6 +1090,7 @@ class AppStrings {
   String get appPresentationInvalidJson => tr(
     en: 'Invalid per-app settings JSON.',
     ru: 'Невалидный JSON настроек приложений.',
+    tr: 'Geçersiz uygulama bazlı ayarlar JSON\'u.',
     zhHans: '按应用设置 JSON 无效。',
     zhHant: '各應用設定 JSON 無效。',
   );
@@ -869,6 +1098,7 @@ class AppStrings {
   String get downloadSettings => tr(
     en: 'Download settings',
     ru: 'Скачать настройки',
+    tr: 'Ayarları indir',
     zhHans: '下载设置',
     zhHant: '下載設定',
   );
@@ -876,16 +1106,18 @@ class AppStrings {
   String get uploadSettings => tr(
     en: 'Upload settings',
     ru: 'Загрузить настройки',
+    tr: 'Ayarları yükle',
     zhHans: '上传设置',
     zhHant: '上傳設定',
   );
 
   String get save =>
-      tr(en: 'Save', ru: 'Сохранить', zhHans: '保存', zhHant: '儲存');
+      tr(en: 'Save', ru: 'Сохранить', tr: 'Kaydet', zhHans: '保存', zhHant: '儲存');
 
   String get appsLoadFailed => tr(
     en: 'Unable to load installed apps list.',
     ru: 'Не удалось загрузить список приложений.',
+    tr: 'Yüklü uygulama listesi yüklenemiyor.',
     zhHans: '无法加载已安装应用列表。',
     zhHant: '無法載入已安裝應用清單。',
   );
@@ -893,6 +1125,7 @@ class AppStrings {
   String get appsAccessTitle => tr(
     en: 'App list access',
     ru: 'Доступ к списку приложений',
+    tr: 'Uygulama listesi erişimi',
     zhHans: '应用列表访问',
     zhHant: '應用清單存取',
   );
@@ -900,6 +1133,7 @@ class AppStrings {
   String get appsAccessMessage => tr(
     en: 'Allow LiveBridge to read installed apps so you can pick apps for rules?',
     ru: 'Разрешить LiveBridge читать список установленных приложений для выбора правил?',
+    tr: 'Kurallar için uygulama seçebilmeniz adına LiveBridge yüklü uygulamaları okuyabilsin mi?',
     zhHans: '允许 LiveBridge 读取已安装应用列表，以便为规则选择应用吗？',
     zhHant: '允許 LiveBridge 讀取已安裝應用清單，以便為規則選擇應用程式嗎？',
   );
@@ -907,19 +1141,26 @@ class AppStrings {
   String get appsAccessSaveFailed => tr(
     en: 'Unable to save access preference.',
     ru: 'Не удалось сохранить выбор доступа.',
+    tr: 'Erişim tercihi kaydedilemiyor.',
     zhHans: '无法保存访问偏好。',
     zhHant: '無法儲存存取偏好。',
   );
 
   String get cancel =>
-      tr(en: 'Cancel', ru: 'Отмена', zhHans: '取消', zhHant: '取消');
+      tr(en: 'Cancel', ru: 'Отмена', tr: 'İptal', zhHans: '取消', zhHant: '取消');
 
-  String get allow =>
-      tr(en: 'Allow', ru: 'Разрешить', zhHans: '允许', zhHant: '允許');
+  String get allow => tr(
+    en: 'Allow',
+    ru: 'Разрешить',
+    tr: 'İzin ver',
+    zhHans: '允许',
+    zhHant: '允許',
+  );
 
   String get textProgressTitle => tr(
     en: 'Text progress',
     ru: 'Текстовые прогрессы',
+    tr: 'Metin ilerlemesi',
     zhHans: '文本进度',
     zhHant: '文字進度',
   );

@@ -30,6 +30,7 @@ class LiveBridgeApp extends StatelessWidget {
       supportedLocales: const <Locale>[
         Locale('en'),
         Locale('ru'),
+        Locale('tr'),
         Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
         Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       ],
