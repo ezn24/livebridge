@@ -417,7 +417,7 @@
     "交易码",
     "交易碼"
   ],
-  "otp_loose_trigger_pattern": "(?:(?:\\bcode\\b|\\bкод\\b|验证码|驗證碼|密码|密碼|校验码|校驗碼)\\s*[:#-]?[\\s]*\\d{4,8})",
+  "otp_loose_trigger_pattern": "(?:(?:\\bcode\\b|\\bкод\\b|验证码|驗證碼|密码|密碼|校验码|校驗碼)\\s*[:#-]?[\\s]*\\d(?:[\\s-]?\\d){3,7})",
   "money_context_pattern": "(₽|руб\\.?|rub|usd|eur|kzt|тенге|р\\.|\\$|€|price|total|amount|sum|сумм|цена|стоимост|итого|￥|¥|twd|nt\\$|rmb|cny|hkd|金额|金額|总价|總價|合计|合計|消费|消費|付款|收款|扣款|转账|轉帳)",
   "text_progress_percent_pattern": "(?<!\\d)(\\d{1,3})\\s*%",
   "text_progress_context_window": 80,
