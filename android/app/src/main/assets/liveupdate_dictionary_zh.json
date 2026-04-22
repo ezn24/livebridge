@@ -14,7 +14,13 @@
         "外卖",
         "meituan",
         "eleme",
-        "foodpanda"
+        "foodpanda",
+        "zepto",
+        "zomato",
+        "swiggy",
+        "blinkit",
+        "instamart",
+        "bigbasket"
       ],
       "text_triggers": [
         "订单",
@@ -464,7 +470,8 @@
     "配送"
   ],
   "entity_token_patterns": [
-    "(?:订单|訂單|行程)\\s*(?:#)?\\s*([a-zA-Z0-9-]{2,16})"
+    "(?:订单|訂單|行程)\\s*(?:#|编号|編號|号|號)\\s*([a-zA-Z0-9-]{2,16})",
+    "(?:订单|訂單|行程)\\s+([a-zA-Z0-9-]*\\d[a-zA-Z0-9-]{1,15})"
   ],
   "status_labels": {
     "food": {

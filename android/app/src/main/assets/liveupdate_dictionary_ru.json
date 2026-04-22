@@ -13,7 +13,13 @@
         "food",
         "meituan",
         "eleme",
-        "foodpanda"
+        "foodpanda",
+        "zepto",
+        "zomato",
+        "swiggy",
+        "blinkit",
+        "instamart",
+        "bigbasket"
       ],
       "text_triggers": [
         "заказ",
@@ -354,7 +360,8 @@
     "достав"
   ],
   "entity_token_patterns": [
-    "(?:заказ|поездк[аы])\\s*(?:#|№)?\\s*([a-zA-Z0-9-]{2,16})"
+    "(?:заказ|поездк[аы])\\s*(?:#|№|id|no\\.?|номер)\\s*([a-zA-Z0-9-]{2,16})",
+    "(?:заказ|поездк[аы])\\s+([a-zA-Z0-9-]*\\d[a-zA-Z0-9-]{1,15})"
   ],
   "status_labels": {
     "food": {

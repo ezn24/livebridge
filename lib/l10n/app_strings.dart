@@ -248,7 +248,7 @@ class AppStrings {
 
   String get brandSpecificTitle => tr(
     en: 'Brand-specific',
-    ru: 'Особенности бренда',
+    ru: 'Brand-specific',
     tr: 'Markaya özel',
     zhHans: '品牌特定',
     zhHant: '品牌特定',
@@ -331,7 +331,7 @@ class AppStrings {
 
   String get permissionCheckRequired => tr(
     en: 'check required',
-    ru: 'нужно проверить',
+    ru: 'требуется проверка',
     tr: 'kontrol gerekli',
     zhHans: '需要检查',
     zhHant: '需要檢查',
@@ -339,7 +339,7 @@ class AppStrings {
 
   String get permissionsAllSet => tr(
     en: 'all set',
-    ru: 'всё готово',
+    ru: 'всё хорошо',
     tr: 'hazır',
     zhHans: '已就绪',
     zhHant: '已就緒',
@@ -700,7 +700,7 @@ class AppStrings {
 
   String get appUpdateAllSetTitle => tr(
     en: 'You’re all set',
-    ru: 'Всё готово',
+    ru: 'Всё хорошо',
     tr: 'Her şey hazır',
     zhHans: '已是最新',
     zhHant: '已是最新',
@@ -869,13 +869,8 @@ class AppStrings {
     zhHant: '來自 $appLabel',
   );
 
-  String conversionLogAt(String time) => tr(
-    en: 'at $time',
-    ru: 'в $time',
-    tr: time,
-    zhHans: time,
-    zhHant: time,
-  );
+  String conversionLogAt(String time) =>
+      tr(en: 'at $time', ru: 'в $time', tr: time, zhHans: time, zhHant: time);
 
   String get conversionLogEntryTitleLabel => tr(
     en: 'Title',
@@ -961,7 +956,7 @@ class AppStrings {
 
   String get liveUpdatesAccess => tr(
     en: 'Live Updates promotion',
-    ru: 'Продвижение Live Updates',
+    ru: 'Разрешение на Live Updates',
     tr: 'Live Updates tanıtımı',
     zhHans: 'Live Updates 推送权限',
     zhHant: 'Live Updates 推送權限',
@@ -1005,6 +1000,14 @@ class AppStrings {
     tr: 'DnD eşitle',
     zhHans: '同步勿扰',
     zhHant: '同步勿擾',
+  );
+
+  String get preventDismissingTitle => tr(
+    en: 'Prevent dismissing',
+    ru: 'Запретить скрытие',
+    tr: 'Kapatmayı engelle',
+    zhHans: '防止被关闭',
+    zhHant: '防止被關閉',
   );
 
   String get updateChecksTitle => tr(

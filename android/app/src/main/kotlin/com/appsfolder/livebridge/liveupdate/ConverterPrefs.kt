@@ -80,6 +80,14 @@ class ConverterPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_SPRING_TRANSITIONS_ENABLED, value).apply()
     }
 
+    fun getPreventMirrorDismissEnabled(): Boolean {
+        return prefs.getBoolean(KEY_PREVENT_MIRROR_DISMISS_ENABLED, false)
+    }
+
+    fun setPreventMirrorDismissEnabled(value: Boolean) {
+        prefs.edit().putBoolean(KEY_PREVENT_MIRROR_DISMISS_ENABLED, value).apply()
+    }
+
     fun getConversionLogEnabled(): Boolean {
         return prefs.getBoolean(KEY_CONVERSION_LOG_ENABLED, false)
     }
@@ -753,6 +761,8 @@ class ConverterPrefs(context: Context) {
         private const val KEY_NETWORK_SPEED_MIN_THRESHOLD_BYTES_PER_SECOND =
             "network_speed_min_threshold_bytes_per_second"
         private const val KEY_SPRING_TRANSITIONS_ENABLED = "spring_transitions_enabled"
+        private const val KEY_PREVENT_MIRROR_DISMISS_ENABLED =
+            "prevent_mirror_dismiss_enabled"
         private const val KEY_CONVERSION_LOG_ENABLED = "conversion_log_enabled"
         private const val KEY_BUG_REPORT_AUTO_COPY_ENABLED = "bug_report_auto_copy_enabled"
         private const val KEY_CONVERSION_LOG_MAX_BYTES = "conversion_log_max_bytes"

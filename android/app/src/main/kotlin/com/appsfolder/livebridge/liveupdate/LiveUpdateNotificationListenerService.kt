@@ -152,6 +152,7 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
             return
         }
         if (sbn.packageName == packageName) {
+            LiveUpdateNotifier.handleMirroredRemoved(applicationContext, sbn)
             return
         }
         if (consumeSelfDismissedSourceKey(sbn.key)) {

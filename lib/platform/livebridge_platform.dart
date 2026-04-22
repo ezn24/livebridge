@@ -78,6 +78,10 @@ class LiveBridgePlatform {
       _askBool('getSpringTransitionsEnabled');
   static Future<bool> setSpringTransitionsEnabled(bool value) =>
       _askBool('setSpringTransitionsEnabled', {'value': value});
+  static Future<bool> getPreventMirrorDismissEnabled() =>
+      _askBool('getPreventMirrorDismissEnabled');
+  static Future<bool> setPreventMirrorDismissEnabled(bool value) =>
+      _askBool('setPreventMirrorDismissEnabled', {'value': value});
   static Future<bool> getConversionLogEnabled() =>
       _askBool('getConversionLogEnabled');
   static Future<bool> setConversionLogEnabled(bool value) =>

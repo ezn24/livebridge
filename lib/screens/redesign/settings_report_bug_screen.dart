@@ -100,6 +100,8 @@ class _SettingsReportBugScreenState extends State<SettingsReportBugScreen> {
     final Future<int> networkSpeedThresholdFuture =
         LiveBridgePlatform.getNetworkSpeedMinThresholdBytesPerSecond();
     final Future<bool> syncDndFuture = LiveBridgePlatform.getSyncDndEnabled();
+    final Future<bool> preventDismissingFuture =
+        LiveBridgePlatform.getPreventMirrorDismissEnabled();
     final Future<bool> updateChecksFuture =
         LiveBridgePlatform.getUpdateChecksEnabled();
     final Future<bool> onlyWithProgressFuture =
@@ -214,6 +216,7 @@ class _SettingsReportBugScreenState extends State<SettingsReportBugScreen> {
         'network_speed_min_threshold_bytes_per_second':
             await networkSpeedThresholdFuture,
         'sync_dnd_enabled': await syncDndFuture,
+        'prevent_mirror_dismiss_enabled': await preventDismissingFuture,
         'update_checks_enabled': await updateChecksFuture,
         'only_with_progress': await onlyWithProgressFuture,
         'text_progress_enabled': await textProgressFuture,

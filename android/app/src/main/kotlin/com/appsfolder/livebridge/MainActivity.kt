@@ -297,6 +297,12 @@ class MainActivity : FlutterActivity() {
                 res.success(true)
             }
 
+            "getPreventMirrorDismissEnabled" -> res.success(prefs.getPreventMirrorDismissEnabled())
+            "setPreventMirrorDismissEnabled" -> {
+                prefs.setPreventMirrorDismissEnabled(call.argument<Boolean>("value") ?: false)
+                res.success(true)
+            }
+
             "getConversionLogEnabled" -> res.success(prefs.getConversionLogEnabled())
             "setConversionLogEnabled" -> {
                 prefs.setConversionLogEnabled(call.argument<Boolean>("value") ?: false)

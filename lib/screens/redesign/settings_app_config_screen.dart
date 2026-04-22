@@ -27,6 +27,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
 
   bool _altBackgroundMode = false;
   bool _syncDnd = true;
+  bool _preventDismissing = false;
   bool _conversionLogEnabled = false;
   int _logLengthMb = 5;
   double _logLengthSliderValue = (5 - _logLengthMinMb).toDouble();
@@ -44,6 +45,8 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
       final Future<bool> altBackgroundFuture =
           LiveBridgePlatform.getKeepAliveForegroundEnabled();
       final Future<bool> syncDndFuture = LiveBridgePlatform.getSyncDndEnabled();
+      final Future<bool> preventDismissingFuture =
+          LiveBridgePlatform.getPreventMirrorDismissEnabled();
       final Future<bool> conversionLogEnabledFuture =
           LiveBridgePlatform.getConversionLogEnabled();
       final Future<int> conversionLogMaxBytesFuture =
@@ -51,6 +54,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
 
       final bool altBackgroundMode = await altBackgroundFuture;
       final bool syncDnd = await syncDndFuture;
+      final bool preventDismissing = await preventDismissingFuture;
       final bool conversionLogEnabled = await conversionLogEnabledFuture;
       final int conversionLogMaxBytes = await conversionLogMaxBytesFuture;
 
@@ -65,6 +69,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
       setState(() {
         _altBackgroundMode = altBackgroundMode;
         _syncDnd = syncDnd;
+        _preventDismissing = preventDismissing;
         _conversionLogEnabled = conversionLogEnabled;
         _logLengthMb = normalizedLogLengthMb;
         _logLengthSliderValue = _sliderPositionForMb(normalizedLogLengthMb);
@@ -86,6 +91,14 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
     }
     setState(() => _syncDnd = value);
     await LiveBridgePlatform.setSyncDndEnabled(value);
+  }
+
+  Future<void> _setPreventDismissing(bool value) async {
+    if (value == _preventDismissing) {
+      return;
+    }
+    setState(() => _preventDismissing = value);
+    await LiveBridgePlatform.setPreventMirrorDismissEnabled(value);
   }
 
   Future<void> _setConversionLogEnabled(bool value) async {
@@ -148,6 +161,19 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
           final bool nextValue = !_syncDnd;
           unawaited(LiveBridgeHaptics.toggle(nextValue));
           unawaited(_setSyncDnd(nextValue));
+        },
+      ),
+      LbListItemData(
+        title: strings.preventDismissingTitle,
+        showChevron: false,
+        toggleValue: _preventDismissing,
+        onToggle: (bool value) {
+          unawaited(_setPreventDismissing(value));
+        },
+        onTap: () {
+          final bool nextValue = !_preventDismissing;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setPreventDismissing(nextValue));
         },
       ),
     ];
