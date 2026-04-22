@@ -39,11 +39,15 @@ object ConversionLogStore {
         }
 
         val entries = readEntries(context)
+        val logKey = buildLogKey(sbn)
         val sourceKey = sbn.key
-        entries.removeAll { it.sourceKey == sourceKey }
+        entries.removeAll {
+            it.logKey == logKey || (it.sourceKey == sourceKey && it.postedAtMs == sbn.postTime)
+        }
         entries.add(
             0,
             ConversionLogEntryRecord(
+                logKey = logKey,
                 sourceKey = sourceKey,
                 packageName = sbn.packageName,
                 appLabel = resolveAppLabel(context, sbn.packageName),
@@ -60,6 +64,19 @@ object ConversionLogStore {
         )
         trimToMaxBytes(entries, prefs.getConversionLogMaxBytes())
         writeEntries(context, entries)
+    }
+
+    private fun buildLogKey(sbn: StatusBarNotification): String {
+        return "${sbn.key}|posted_at:${sbn.postTime}|event_at:${resolveEventTime(sbn)}"
+    }
+
+    private fun resolveEventTime(sbn: StatusBarNotification): Long {
+        val notificationWhen = sbn.notification.`when`
+        return if (notificationWhen > 0L) {
+            notificationWhen
+        } else {
+            sbn.postTime
+        }
     }
 
     private fun resolveAppLabel(context: Context, packageName: String): String {
@@ -81,10 +98,12 @@ object ConversionLogStore {
         val notification = sbn.notification
         val extras = notification.extras
         val payload = JSONObject().apply {
+            put("log_key", buildLogKey(sbn))
             put("source_key", sbn.key)
             put("package_name", sbn.packageName)
             put("app_label", resolveAppLabel(context, sbn.packageName))
             put("posted_at_ms", sbn.postTime)
+            put("notification_when_ms", resolveEventTime(sbn))
             put("notification_id", sbn.id)
             put("tag", sbn.tag)
             put("group_key", sbn.groupKey)
@@ -183,6 +202,7 @@ object ConversionLogStore {
     }
 
     private data class ConversionLogEntryRecord(
+        val logKey: String,
         val sourceKey: String,
         val packageName: String,
         val appLabel: String,
@@ -193,6 +213,7 @@ object ConversionLogStore {
     ) {
         fun toJson(): JSONObject {
             return JSONObject().apply {
+                put("log_key", logKey)
                 put("source_key", sourceKey)
                 put("package_name", packageName.lowercase(Locale.ROOT))
                 put("app_label", appLabel)
@@ -210,7 +231,9 @@ object ConversionLogStore {
                 if (sourceKey.isBlank() || packageName.isBlank()) {
                     return null
                 }
+                val logKey = json.optString("log_key").trim().ifBlank { sourceKey }
                 return ConversionLogEntryRecord(
+                    logKey = logKey,
                     sourceKey = sourceKey,
                     packageName = packageName,
                     appLabel = json.optString("app_label").ifBlank { packageName },
