@@ -13,6 +13,7 @@ import java.util.Locale
 object ConversionLogStore {
     private const val FILE_NAME = "conversion_log.json"
     private const val TAG = "ConversionLogStore"
+    private const val CONTINUOUS_NOTIFICATION_UPDATE_WINDOW_MS = 2L * 60L * 1000L
 
     @Synchronized
     fun getEntriesRaw(context: Context): String {
@@ -39,11 +40,24 @@ object ConversionLogStore {
         }
 
         val entries = readEntries(context)
-        val logKey = buildLogKey(sbn)
         val sourceKey = sbn.key
-        entries.removeAll {
-            it.logKey == logKey || (it.sourceKey == sourceKey && it.postedAtMs == sbn.postTime)
+        val continuousSessionEntries = if (isContinuousNotification(sbn)) {
+            findContinuousSessionEntries(entries, sourceKey, sbn.postTime)
+        } else {
+            emptyList()
         }
+        val logKey = continuousSessionEntries.firstOrNull()?.logKey ?: buildLogKey(sbn)
+
+        if (continuousSessionEntries.isNotEmpty()) {
+            val staleLogKeys = continuousSessionEntries.mapTo(mutableSetOf()) { it.logKey }
+            entries.removeAll { it.logKey in staleLogKeys }
+        } else {
+            entries.removeAll {
+                it.logKey == logKey ||
+                    (it.sourceKey == sourceKey && it.postedAtMs == sbn.postTime)
+            }
+        }
+
         entries.add(
             0,
             ConversionLogEntryRecord(
@@ -57,6 +71,7 @@ object ConversionLogStore {
                 payloadJson = buildPayloadJson(
                     context = context,
                     sbn = sbn,
+                    logKey = logKey,
                     title = title,
                     text = text
                 )
@@ -64,6 +79,51 @@ object ConversionLogStore {
         )
         trimToMaxBytes(entries, prefs.getConversionLogMaxBytes())
         writeEntries(context, entries)
+    }
+
+    private fun findContinuousSessionEntries(
+        entries: List<ConversionLogEntryRecord>,
+        sourceKey: String,
+        currentAtMs: Long
+    ): List<ConversionLogEntryRecord> {
+        val sessionEntries = mutableListOf<ConversionLogEntryRecord>()
+        var newestAtMs = currentAtMs
+
+        entries
+            .asSequence()
+            .filter { it.sourceKey == sourceKey }
+            .forEach { entry ->
+                if (!isWithinContinuousUpdateWindow(newestAtMs, entry.postedAtMs)) {
+                    return sessionEntries
+                }
+
+                sessionEntries.add(entry)
+                newestAtMs = entry.postedAtMs
+            }
+
+        return sessionEntries
+    }
+
+    private fun isWithinContinuousUpdateWindow(leftMs: Long, rightMs: Long): Boolean {
+        if (leftMs <= 0L || rightMs <= 0L) {
+            return true
+        }
+        val diffMs = if (leftMs >= rightMs) leftMs - rightMs else rightMs - leftMs
+        return diffMs <= CONTINUOUS_NOTIFICATION_UPDATE_WINDOW_MS
+    }
+
+    private fun isContinuousNotification(sbn: StatusBarNotification): Boolean {
+        val notification = sbn.notification
+        val extras = notification.extras
+        val hasProgress = extras.getInt(Notification.EXTRA_PROGRESS_MAX, 0) > 0 ||
+            extras.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE, false)
+
+        return sbn.isOngoing ||
+            hasProgress ||
+            notification.category == Notification.CATEGORY_SERVICE ||
+            notification.category == Notification.CATEGORY_PROGRESS ||
+            notification.category == Notification.CATEGORY_STATUS ||
+            notification.category == Notification.CATEGORY_TRANSPORT
     }
 
     private fun buildLogKey(sbn: StatusBarNotification): String {
@@ -92,13 +152,14 @@ object ConversionLogStore {
     private fun buildPayloadJson(
         context: Context,
         sbn: StatusBarNotification,
+        logKey: String,
         title: String,
         text: String
     ): String {
         val notification = sbn.notification
         val extras = notification.extras
         val payload = JSONObject().apply {
-            put("log_key", buildLogKey(sbn))
+            put("log_key", logKey)
             put("source_key", sbn.key)
             put("package_name", sbn.packageName)
             put("app_label", resolveAppLabel(context, sbn.packageName))

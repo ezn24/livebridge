@@ -51,9 +51,8 @@ class LbStatCard extends StatelessWidget {
                     color: iconColor,
                   ),
                   const SizedBox(height: LbSpacing.statCardIconGap),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
+                  _LbStatCardText(
+                    text: title,
                     style: LbTextStyles.statTitle.copyWith(
                       color: palette.textPrimary,
                     ),
@@ -61,9 +60,8 @@ class LbStatCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Transform.translate(
                     offset: const Offset(0, -2),
-                    child: Text(
-                      subtitle,
-                      textAlign: TextAlign.center,
+                    child: _LbStatCardText(
+                      text: subtitle,
                       style: LbTextStyles.statCaption.copyWith(
                         color: subtitleColor,
                       ),
@@ -73,6 +71,33 @@ class LbStatCard extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LbStatCardText extends StatelessWidget {
+  const _LbStatCardText({
+    required this.text,
+    required this.style,
+  });
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          maxLines: 1,
+          softWrap: false,
+          textAlign: TextAlign.center,
+          style: style,
         ),
       ),
     );
