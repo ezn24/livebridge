@@ -31,6 +31,7 @@ class LiveBridgeApp extends StatelessWidget {
         Locale('en'),
         Locale('ru'),
         Locale('tr'),
+        Locale('pt', 'BR'),
         Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
         Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       ],

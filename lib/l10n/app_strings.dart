@@ -6,6 +6,12 @@ class AppStrings {
 
   bool get isRu => locale.languageCode.toLowerCase().startsWith('ru');
   bool get isTr => locale.languageCode.toLowerCase().startsWith('tr');
+  bool get isPtBr {
+    final String languageCode = locale.languageCode.toLowerCase();
+    final String countryCode = locale.countryCode?.toLowerCase() ?? '';
+    return languageCode == 'pt' && countryCode == 'br';
+  }
+
   bool get isZhHans {
     final String languageCode = locale.languageCode.toLowerCase();
     if (languageCode != 'zh') return false;
@@ -29,11 +35,13 @@ class AppStrings {
     required String en,
     required String ru,
     String? tr,
+    String? ptBr,
     String? zhHans,
     String? zhHant,
   }) {
     if (isRu) return ru;
     if (isTr) return tr ?? en;
+    if (isPtBr) return ptBr ?? _ptBrTranslations[en] ?? en;
     if (isZhHant) return zhHant ?? zhHans ?? en;
     if (isZhHans) return zhHans ?? zhHant ?? en;
     return en;
@@ -280,14 +288,6 @@ class AppStrings {
 
   String get statusByPrefix =>
       tr(en: 'by ', ru: 'by ', tr: 'by ', zhHans: 'by ', zhHant: 'by ');
-
-  String rulesCount(int count) => tr(
-    en: '$count Rules',
-    ru: '$count правил',
-    tr: '$count kural',
-    zhHans: '$count 条规则',
-    zhHant: '$count 條規則',
-  );
 
   String get discussTitle => tr(
     en: 'Discuss',
@@ -758,6 +758,7 @@ class AppStrings {
     en: '$current -> $latest | tap to see',
     ru: '$current -> $latest | посмотреть',
     tr: '$current -> $latest | görmek için dokunun',
+    ptBr: '$current -> $latest | toque para ver',
     zhHans: '$current -> $latest | 点按查看',
     zhHant: '$current -> $latest | 點按查看',
   );
@@ -865,12 +866,19 @@ class AppStrings {
     en: 'from $appLabel',
     ru: 'от $appLabel',
     tr: '$appLabel uygulamasından',
+    ptBr: 'de $appLabel',
     zhHans: '来自 $appLabel',
     zhHant: '來自 $appLabel',
   );
 
-  String conversionLogAt(String time) =>
-      tr(en: 'at $time', ru: 'в $time', tr: time, zhHans: time, zhHant: time);
+  String conversionLogAt(String time) => tr(
+    en: 'at $time',
+    ru: 'в $time',
+    tr: time,
+    ptBr: 'às $time',
+    zhHans: time,
+    zhHant: time,
+  );
 
   String get conversionLogEntryTitleLabel => tr(
     en: 'Title',
@@ -1168,3 +1176,157 @@ class AppStrings {
     zhHant: '文字進度',
   );
 }
+
+const Map<String, String> _ptBrTranslations = <String, String>{
+  'Refresh': 'Atualizar',
+  'Notification permission granted.': 'Permissão de notificações concedida.',
+  'Notification permission was not granted.':
+      'Permissão de notificações não concedida.',
+  'Unable to open Listener settings on this device.':
+      'Não foi possível abrir as configurações do Listener neste dispositivo.',
+  'Unable to open app notification settings.':
+      'Não foi possível abrir as configurações de notificação do app.',
+  'Unable to open Live Updates settings on this device.':
+      'Não foi possível abrir as configurações de Live Updates neste dispositivo.',
+  'Unable to open GitHub link.': 'Não foi possível abrir o link do GitHub.',
+  'Unable to open link.': 'Não foi possível abrir o link.',
+  'Unable to check updates. Try disabling VPN.':
+      'Não foi possível verificar atualizações. Tente desativar a VPN.',
+  'Dictionary is empty or invalid.': 'O dicionário está vazio ou inválido.',
+  'Dictionary updated from GitHub.': 'Dicionário atualizado pelo GitHub.',
+  'Invalid dictionary JSON.': 'JSON do dicionário inválido.',
+  'Failed to update dictionary from GitHub.':
+      'Falha ao atualizar o dicionário pelo GitHub.',
+  'Dictionary': 'Dicionário',
+  'tap to manage': 'toque para gerenciar',
+  'Dictionary languages': 'Idiomas do dicionário',
+  'tap to choose': 'toque para escolher',
+  'Select languages for conversion': 'Selecione idiomas para conversão',
+  'Update dictionaries': 'Atualizar dicionários',
+  'Dictionary editor': 'Editor de dicionário',
+  '(coming soon)': '(em breve)',
+  'Home': 'Início',
+  'Rules': 'Regras',
+  'Settings': 'Configurações',
+  'App config': 'Configuração do app',
+  'Brand-specific': 'Específico da marca',
+  'App updates': 'Atualizações do app',
+  'LiveBridge is running': 'LiveBridge está em execução',
+  'LiveBridge is disabled': 'LiveBridge está desativado',
+  'by ': 'por ',
+  'Discuss': 'Discutir',
+  'telegram topics': 'tópicos no Telegram',
+  'all apps': 'todos os apps',
+  'only selected': 'somente selecionados',
+  'exclude selected': 'excluir selecionados',
+  'check required': 'verificação necessária',
+  'all set': 'tudo certo',
+  'tap to update': 'toque para atualizar',
+  'latest version': 'versão mais recente',
+  'Recent conversions': 'Conversões recentes',
+  'no conversions yet': 'nenhuma conversão ainda',
+  'conversion log is disabled': 'o log de conversões está desativado',
+  'enable': 'ativar',
+  'Payload copied': 'Payload copiado',
+  'Progress': 'Progresso',
+  'Native progress': 'Progresso nativo',
+  'OTP codes': 'Códigos OTP',
+  'Auto-copy code': 'Copiar código automaticamente',
+  'Smart conversion': 'Conversão inteligente',
+  'Taxi': 'Táxi',
+  'Deliveries': 'Entregas',
+  'Remove original message': 'Remover mensagem original',
+  '(exp)': '(exp)',
+  'All apps': 'Todos os apps',
+  'Only selected': 'Somente selecionados',
+  'Exclude selected': 'Excluir selecionados',
+  'Conversion mode': 'Modo de conversão',
+  'Selected apps': 'Apps selecionados',
+  'show system': 'mostrar sistema',
+  'hide system': 'ocultar sistema',
+  'Network & Connections': 'Rede e conexões',
+  'VPNs': 'VPNs',
+  'External devices': 'Dispositivos externos',
+  'Ignore debugging devices': 'Ignorar dispositivos de depuração',
+  'Network speed threshold': 'Limite de velocidade de rede',
+  'Miscellaneous': 'Diversos',
+  'Navigation (maps)': 'Navegação (mapas)',
+  'Media playback': 'Reprodução de mídia',
+  'Weather broadcasts': 'Alertas de clima',
+  'Bypass': 'Bypass',
+  'Per-app settings': 'Configurações por app',
+  'Defaults': 'Padrões',
+  'tap to change default behavior': 'toque para alterar o comportamento padrão',
+  'Apps list': 'Lista de apps',
+  'Export': 'Exportar',
+  'Import': 'Importar',
+  'Title source': 'Origem do título',
+  'Content source': 'Origem do conteúdo',
+  'Notification title': 'Título da notificação',
+  'App title': 'Título do app',
+  'Notification text': 'Texto da notificação',
+  'New version available': 'Nova versão disponível',
+  'Checking for updates': 'Verificando atualizações',
+  'You’re all set': 'Tudo certo',
+  'tap to go to downloads': 'toque para ir aos downloads',
+  'please wait a moment': 'aguarde um momento',
+  'latest version already': 'já está na versão mais recente',
+  'Visit project page': 'Abrir página do projeto',
+  'Visit GitHub': 'Abrir GitHub',
+  'update available | tap to see': 'atualização disponível | toque para ver',
+  'tap to open update settings': 'toque para abrir ajustes de atualização',
+  'Conversion log': 'Log de conversões',
+  'Log length': 'Tamanho do log',
+  'Xiaomi HyperIsland': 'Xiaomi HyperIsland',
+  'Length': 'Tamanho',
+  'OTP dedup': 'Deduplicação de OTP',
+  'Smart conversion dedup': 'Deduplicação da conversão inteligente',
+  'Animated Island': 'Ilha animada',
+  'Update frequency': 'Frequência de atualização',
+  'Copy debug JSON': 'Copiar JSON de debug',
+  'Open GitHub page': 'Abrir página do GitHub',
+  'Auto-copy debug JSON': 'Copiar JSON de debug automaticamente',
+  'Title': 'Título',
+  'Payload JSON': 'Payload JSON',
+  'loading apps...': 'carregando apps...',
+  'Search for apps...': 'Buscar apps...',
+  'Report a bug': 'Reportar um bug',
+  'Diagnostics copied to clipboard. Paste it into the issue.':
+      'Diagnóstico copiado para a área de transferência. Cole no issue.',
+  'Failed to copy diagnostics.': 'Falha ao copiar diagnóstico.',
+  'Permissions': 'Permissões',
+  'Notification Listener access': 'Acesso ao Notification Listener',
+  'Post notifications permission': 'Permissão para enviar notificações',
+  'Live Updates promotion': 'Permissão para Live Updates',
+  'Alt background mode': 'Modo alternativo em segundo plano',
+  'Network speed': 'Velocidade da rede',
+  'Always show': 'Sempre mostrar',
+  'Sync DnD': 'Sincronizar Não Perturbe',
+  'Prevent dismissing': 'Impedir dispensa',
+  'Update checking': 'Verificação de atualizações',
+  'Experimental': 'Experimental',
+  'AOSP cutting': 'Recorte AOSP',
+  'Per-app behavior': 'Comportamento por app',
+  'Unable to load per-app settings.':
+      'Não foi possível carregar configurações por app.',
+  'Unable to save per-app settings.':
+      'Não foi possível salvar configurações por app.',
+  'Failed to save settings JSON.': 'Falha ao salvar JSON de configurações.',
+  'Settings saved to Downloads.': 'Configurações salvas em Downloads.',
+  'Per-app settings imported.': 'Configurações por app importadas.',
+  'Failed to import settings JSON.': 'Falha ao importar JSON de configurações.',
+  'Invalid per-app settings JSON.': 'JSON de configurações por app inválido.',
+  'Download settings': 'Baixar configurações',
+  'Upload settings': 'Enviar configurações',
+  'Save': 'Salvar',
+  'Unable to load installed apps list.':
+      'Não foi possível carregar a lista de apps instalados.',
+  'App list access': 'Acesso à lista de apps',
+  'Allow LiveBridge to read installed apps so you can pick apps for rules?':
+      'Permitir que o LiveBridge leia os apps instalados para que você possa escolher apps para as regras?',
+  'Unable to save access preference.':
+      'Não foi possível salvar a preferência de acesso.',
+  'Cancel': 'Cancelar',
+  'Allow': 'Permitir',
+  'Text progress': 'Progresso por texto',
+};
