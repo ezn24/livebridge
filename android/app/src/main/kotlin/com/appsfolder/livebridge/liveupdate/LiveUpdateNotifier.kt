@@ -106,6 +106,8 @@ object LiveUpdateNotifier {
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Converted promoted ongoing notifications"
+            enableVibration(false)
+            setSound(null, null)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
     }
@@ -890,6 +892,8 @@ object LiveUpdateNotifier {
             .setContentText(displayText)
             .setSubText(appName)
             .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setDefaults(0)
             .setOngoing(true)
             .setAutoCancel(false)
             .setWhen(resolveStableWhen(source, sbn.postTime))
