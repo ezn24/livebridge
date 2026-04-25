@@ -62,7 +62,6 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   bool _isRefreshingState = false;
   bool _isCheckingUpdates = false;
   bool _isLoading = true;
-  bool _deviceBlocked = false;
   bool _listenerEnabled = false;
   bool _notificationsGranted = false;
   bool _canPostPromoted = false;
@@ -206,17 +205,6 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     if (showLoading) setState(() => _isLoading = true);
 
     try {
-      final bool deviceBlocked = await LiveBridgePlatform.isDeviceBlocked();
-      if (deviceBlocked) {
-        if (mounted) {
-          setState(() {
-            _deviceBlocked = true;
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
       final bool listenerEnabled =
           await LiveBridgePlatform.isNotificationListenerEnabled();
       final bool notificationsGranted =
@@ -335,7 +323,6 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           }
           _didInitSectionDefaults = true;
         }
-        _deviceBlocked = false;
         _listenerEnabled = listenerEnabled;
         _notificationsGranted = notificationsGranted;
         _canPostPromoted = canPostPromoted;
@@ -1144,17 +1131,6 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     _snack(AppStrings.of(context).liveUpdatesUnavailable);
   }
 
-  Future<void> _acknowledgeBlockedJoke() async {
-    LiveBridgeHaptics.confirm();
-    final bool saved = await LiveBridgePlatform.setPixelJokeBypassEnabled(true);
-    if (!mounted) return;
-    if (!saved) {
-      _snack(AppStrings.of(context).blockedBypassSaveFailed);
-      return;
-    }
-    await _refreshState();
-  }
-
   Future<void> _downloadParserDictionary() async {
     if (_dictionaryActionInProgress) return;
     LiveBridgeHaptics.confirm();
@@ -1559,8 +1535,6 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
         bottom: false,
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : _deviceBlocked
-            ? _buildBlockedScreen(s)
             : RefreshIndicator(
                 onRefresh: () => _refreshState(showLoading: false),
                 child: ListView(
@@ -1602,70 +1576,6 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
                   ],
                 ),
               ),
-      ),
-    );
-  }
-
-  Widget _buildBlockedScreen(AppStrings s) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Stack(
-                alignment: Alignment.center,
-                children: <Widget>[
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: colorScheme.errorContainer.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  Icon(
-                    Icons.phone_android_rounded,
-                    size: 64,
-                    color: colorScheme.error,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              Text(
-                s.blockedTitle,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                s.blockedSubtitle,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _acknowledgeBlockedJoke,
-                  icon: const Icon(Icons.visibility_off_outlined),
-                  label: Text(
-                    s.blockedBypassAction,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -2350,7 +2260,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
   }
 
   Widget _buildNotificationDedupStatusesSwitchRow(AppStrings s) {
-    final bool value = _notificationDedupMode == NotificationDedupMode.otpStatus;
+    final bool value =
+        _notificationDedupMode == NotificationDedupMode.otpStatus;
     return _buildInlinePanelSwitchRow(
       title: s.notificationDedupStatusesTitle,
       subtitle: s.notificationDedupStatusesSubtitle,
@@ -3119,7 +3030,8 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
           ),
           const SizedBox(height: 16),
           _ruleButtonsRow(
-            onPick: () => _openPackagePicker(target: _PackagePickerTarget.dedup),
+            onPick: () =>
+                _openPackagePicker(target: _PackagePickerTarget.dedup),
             s: s,
           ),
         ],
@@ -3193,9 +3105,7 @@ class _LiveBridgeHomePageState extends State<LiveBridgeHomePage>
     if (colorScheme.brightness != Brightness.light) {
       return null;
     }
-    return Border.all(
-      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-    );
+    return Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5));
   }
 
   int _snapNetworkSpeedThresholdBytesPerSecond(double sliderValue) {

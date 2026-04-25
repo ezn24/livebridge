@@ -60,8 +60,7 @@ class LiveBridgeTileService : TileService() {
         val shouldRun =
             prefs.getConverterEnabled() &&
                     prefs.getKeepAliveForegroundEnabled() &&
-                    isNotificationListenerEnabled() &&
-                    (!DeviceBlocker.isBlockedDevice() || prefs.getPixelJokeBypassEnabled())
+                    isNotificationListenerEnabled()
         if (shouldRun) {
             KeepAliveForegroundService.start(applicationContext)
         } else {

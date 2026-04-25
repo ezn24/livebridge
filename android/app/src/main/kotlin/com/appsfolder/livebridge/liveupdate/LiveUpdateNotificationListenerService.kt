@@ -26,10 +26,6 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
     private val snapshotSyncRunnable = object : Runnable {
         override fun run() {
             snapshotSyncScheduled = false
-            if (isBlockedByJoke()) {
-                scheduleSnapshotSync()
-                return
-            }
             if (!prefs.getConverterEnabled()) {
                 scheduleSnapshotSync()
                 return
@@ -62,11 +58,6 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
     override fun onCreate() {
         super.onCreate()
 
-        if (isBlockedByJoke()) {
-            NetworkSpeedController.sync(applicationContext, prefs)
-            NotificationManagerCompat.from(applicationContext).cancelAll()
-            return
-        }
         if (!prefs.getConverterEnabled()) {
             LiveUpdateNotifier.clearRuntimeState()
             NotificationManagerCompat.from(applicationContext).cancelAll()
@@ -83,9 +74,6 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
         rebindScheduled = false
         NetworkSpeedController.sync(applicationContext, prefs)
 
-        if (isBlockedByJoke()) {
-            return
-        }
         if (!prefs.getConverterEnabled()) {
             LiveUpdateNotifier.clearRuntimeState()
             NotificationManagerCompat.from(applicationContext).cancelAll()
@@ -120,17 +108,11 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
         NetworkSpeedController.sync(applicationContext, prefs)
-        if (isBlockedByJoke()) {
-            return
-        }
         scheduleRebind("listener_disconnected")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         sbn ?: return
-        if (isBlockedByJoke()) {
-            return
-        }
         if (sbn.packageName == packageName) {
             return
         }
@@ -148,9 +130,6 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         sbn ?: return
-        if (isBlockedByJoke()) {
-            return
-        }
         if (sbn.packageName == packageName) {
             LiveUpdateNotifier.handleMirroredRemoved(applicationContext, sbn)
             return
@@ -164,10 +143,6 @@ class LiveUpdateNotificationListenerService : NotificationListenerService() {
         } catch (error: Throwable) {
             Log.e(TAG, "Failed to process removed notification: ${sbn.key}", error)
         }
-    }
-
-    private fun isBlockedByJoke(): Boolean {
-        return DeviceBlocker.isBlockedDevice() && !prefs.getPixelJokeBypassEnabled()
     }
 
     override fun onDestroy() {

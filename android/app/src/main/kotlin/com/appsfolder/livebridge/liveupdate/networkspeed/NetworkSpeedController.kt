@@ -10,7 +10,6 @@ import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.appsfolder.livebridge.liveupdate.ConverterPrefs
-import com.appsfolder.livebridge.liveupdate.DeviceBlocker
 import com.appsfolder.livebridge.liveupdate.LiveUpdateNotificationListenerService
 
 object NetworkSpeedController {
@@ -44,9 +43,6 @@ object NetworkSpeedController {
             return false
         }
         if (!isNotificationListenerEnabled(context)) {
-            return false
-        }
-        if (DeviceBlocker.isBlockedDevice() && !prefs.getPixelJokeBypassEnabled()) {
             return false
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

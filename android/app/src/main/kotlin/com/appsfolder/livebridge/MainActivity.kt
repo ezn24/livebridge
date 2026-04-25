@@ -33,7 +33,6 @@ import com.appsfolder.livebridge.liveupdate.AppPresentationOverridesCodec
 import com.appsfolder.livebridge.liveupdate.AppPresentationOverridesLoader
 import com.appsfolder.livebridge.liveupdate.ConverterPrefs
 import com.appsfolder.livebridge.liveupdate.ConversionLogStore
-import com.appsfolder.livebridge.liveupdate.DeviceBlocker
 import com.appsfolder.livebridge.liveupdate.DeviceProps
 import com.appsfolder.livebridge.liveupdate.KeepAliveForegroundService
 import com.appsfolder.livebridge.liveupdate.LiveBridgeTileService
@@ -93,16 +92,6 @@ class MainActivity : FlutterActivity() {
         val prefs = ConverterPrefs(applicationContext)
 
         when (call.method) {
-            "isDeviceBlocked" -> res.success(
-                DeviceBlocker.isBlockedDevice() && !prefs.getPixelJokeBypassEnabled()
-            )
-
-            "getPixelJokeBypassEnabled" -> res.success(prefs.getPixelJokeBypassEnabled())
-            "setPixelJokeBypassEnabled" -> {
-                prefs.setPixelJokeBypassEnabled(call.argument<Boolean>("value") ?: false)
-                res.success(true)
-            }
-
             "isNotificationListenerEnabled" -> res.success(isNotificationListenerEnabled())
             "requestNotificationListenerRebind" -> res.success(requestNotificationListenerRebind())
             "openNotificationListenerSettings" -> res.success(openNotificationListenerSettings())
@@ -629,8 +618,7 @@ class MainActivity : FlutterActivity() {
         val shouldRun =
             prefs.getConverterEnabled() &&
                     prefs.getKeepAliveForegroundEnabled() &&
-                    isNotificationListenerEnabled() &&
-                    (!DeviceBlocker.isBlockedDevice() || prefs.getPixelJokeBypassEnabled())
+                    isNotificationListenerEnabled()
         if (shouldRun) {
             KeepAliveForegroundService.start(applicationContext)
         } else {

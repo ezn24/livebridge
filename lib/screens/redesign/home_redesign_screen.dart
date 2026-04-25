@@ -237,7 +237,7 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
   }
 
   String _statusCardTitle(AppStrings strings) {
-    return _isLiveBridgeRunning
+    return _displayMasterSwitchValue
         ? strings.statusRunning
         : strings.statusDisabled;
   }

@@ -448,7 +448,11 @@ object LiveUpdateNotifier {
                             )
                         }
                     }
-                    mirroredResult(dedupKind = MirrorDedupKind.OTP)
+                    if (routeState.shouldPublish) {
+                        mirroredResult(dedupKind = MirrorDedupKind.OTP)
+                    } else {
+                        notMirroredResult()
+                    }
                 }
 
                 textProgressMatch != null -> {

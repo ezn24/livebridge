@@ -500,14 +500,6 @@ class ConverterPrefs(context: Context) {
         prefs.edit().putString(KEY_OTP_PACKAGE_MODE, mode.id).apply()
     }
 
-    fun getPixelJokeBypassEnabled(): Boolean {
-        return prefs.getBoolean(KEY_PIXEL_JOKE_BYPASS_ENABLED, false)
-    }
-
-    fun setPixelJokeBypassEnabled(value: Boolean) {
-        prefs.edit().putBoolean(KEY_PIXEL_JOKE_BYPASS_ENABLED, value).apply()
-    }
-
     fun getAppListAccessGranted(): Boolean {
         return prefs.getBoolean(KEY_APP_LIST_ACCESS_GRANTED, false)
     }
@@ -812,7 +804,6 @@ class ConverterPrefs(context: Context) {
             "otp_remove_original_message_enabled"
         private const val KEY_OTP_PACKAGE_RULES = "otp_package_rules"
         private const val KEY_OTP_PACKAGE_MODE = "otp_package_mode"
-        private const val KEY_PIXEL_JOKE_BYPASS_ENABLED = "pixel_joke_bypass_enabled"
         private const val KEY_APP_LIST_ACCESS_GRANTED = "app_list_access_granted"
         private const val KEY_BACKGROUND_WARNING_DISMISSED = "background_warning_dismissed"
         private const val KEY_SAMSUNG_WARNING_DISMISSED = "samsung_warning_dismissed"

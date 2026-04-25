@@ -33,9 +33,6 @@ class LiveBridgePlatform {
 
   static Future<bool> isNotificationListenerEnabled() =>
       _askBool('isNotificationListenerEnabled');
-  static Future<bool> isDeviceBlocked() => _askBool('isDeviceBlocked');
-  static Future<bool> setPixelJokeBypassEnabled(bool value) =>
-      _askBool('setPixelJokeBypassEnabled', {'value': value});
   static Future<bool> openNotificationListenerSettings() =>
       _askBool('openNotificationListenerSettings');
   static Future<bool> isNotificationPermissionGranted() =>
@@ -323,9 +320,8 @@ class LiveBridgePlatform {
         const <String>[];
   }
 
-  static Future<bool> setParserDictionaryEnabledLanguages(
-    List<String> value,
-  ) => _askBool('setParserDictionaryEnabledLanguages', {'value': value});
+  static Future<bool> setParserDictionaryEnabledLanguages(List<String> value) =>
+      _askBool('setParserDictionaryEnabledLanguages', {'value': value});
 
   static Future<bool> setParserDictionaryLanguageOverride({
     required String languageId,
