@@ -14,7 +14,6 @@ import '../../utils/version_compare.dart';
 import '../../widgets/redesign/lb_bottom_floating_nav.dart';
 import '../../widgets/redesign/lb_bottom_nav_item.dart';
 import '../../widgets/redesign/lb_conversion_log_entry_sheet.dart';
-import '../../widgets/redesign/lb_edge_blur_overlay.dart';
 import '../../widgets/redesign/lb_icon.dart';
 import '../../widgets/redesign/lb_installed_app_avatar.dart';
 import '../../widgets/redesign/lb_list_component.dart';
@@ -954,28 +953,24 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
         backgroundColor: palette.background,
         body: Stack(
           children: <Widget>[
-            LbEdgeBlurOverlay(
-              topHeight: 0,
-              bottomHeight: bottomInset + LbEffects.bottomEdgeBlurHeight,
-              child: PageView(
-                controller: _pageController,
-                allowImplicitScrolling: true,
-                physics: const BouncingScrollPhysics(),
-                onPageChanged: (int index) {
-                  if (_programmaticTargetIndex == null &&
-                      !_isDraggingNavSelector) {
-                    _playNavMotion(index);
-                  }
-                  if (_currentTabIndex != index) {
-                    setState(() => _currentTabIndex = index);
-                  }
-                },
-                children: <Widget>[
-                  _buildHomeTab(topInset, bottomInset, palette),
-                  _buildRulesTab(topInset, bottomInset, palette),
-                  _buildSettingsTab(topInset, bottomInset, palette),
-                ],
-              ),
+            PageView(
+              controller: _pageController,
+              allowImplicitScrolling: true,
+              physics: const BouncingScrollPhysics(),
+              onPageChanged: (int index) {
+                if (_programmaticTargetIndex == null &&
+                    !_isDraggingNavSelector) {
+                  _playNavMotion(index);
+                }
+                if (_currentTabIndex != index) {
+                  setState(() => _currentTabIndex = index);
+                }
+              },
+              children: <Widget>[
+                _buildHomeTab(topInset, bottomInset, palette),
+                _buildRulesTab(topInset, bottomInset, palette),
+                _buildSettingsTab(topInset, bottomInset, palette),
+              ],
             ),
             Align(
               alignment: Alignment.bottomCenter,
