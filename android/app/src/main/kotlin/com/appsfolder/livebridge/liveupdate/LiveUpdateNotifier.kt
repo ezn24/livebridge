@@ -54,6 +54,11 @@ object LiveUpdateNotifier {
     private const val PROGRAMMATIC_MIRROR_CANCEL_GRACE_MS = 2_000L
 
     private val OTP_CODE_LENGTH = 4..8
+    private val FALLBACK_PRIVACY_REDACTION_PLACEHOLDERS = setOf(
+        "sensitive content hidden",
+        "content hidden",
+        "unlock to view"
+    )
     private val externalDeviceDebuggingPattern = Regex(
         """(\badb\b|android\s+debug\s+bridge|usb\s+debug(?:ging)?|wireless\s+debug(?:ging)?|\bdebug(?:ging|ger)?\b|developer\s+options?|usb[-\s]?отладк\p{L}*|беспровод\p{L}*\s+отладк\p{L}*|отладк\p{L}*|параметр\p{L}*\s+разработчик\p{L}*)""",
         setOf(RegexOption.IGNORE_CASE)
@@ -159,6 +164,10 @@ object LiveUpdateNotifier {
                 cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
                 return notMirroredResult()
             }
+            val parserDictionary = LiveParserDictionaryLoader.get(context, prefs)
+            if (isPrivacyRedactedNotification(sbn.notification, parserDictionary)) {
+                return notMirroredResult()
+            }
             val appPresentationOverride = AppPresentationOverridesLoader
                 .get(prefs)
                 .resolve(sbn.packageName.lowercase(Locale.ROOT))
@@ -201,7 +210,6 @@ object LiveUpdateNotifier {
                 )
                 return mirroredResult()
             }
-            val parserDictionary = LiveParserDictionaryLoader.get(context, prefs)
             val mediaPlaybackSmartEnabled = prefs.getSmartMediaPlaybackEnabled()
             if (!passesBaseFilters(prefs, sbn, parserDictionary, mediaPlaybackSmartEnabled)) {
                 val staleAggregateIds = synchronized(stateLock) {
@@ -791,6 +799,67 @@ object LiveUpdateNotifier {
             return false
         }
         return true
+    }
+
+    private fun isPrivacyRedactedNotification(
+        source: Notification,
+        parserDictionary: LiveParserDictionary
+    ): Boolean {
+        val contentTexts = collectNotificationContentTexts(source)
+        if (contentTexts.isEmpty()) {
+            return false
+        }
+        val placeholders = parserDictionary.privacyRedactionPlaceholders
+            .ifEmpty { FALLBACK_PRIVACY_REDACTION_PLACEHOLDERS }
+
+        return contentTexts.any { text ->
+            isPrivacyRedactionPlaceholder(text, placeholders)
+        }
+    }
+
+    private fun collectNotificationContentTexts(source: Notification): List<String> {
+        val extras = source.extras
+        val parts = mutableListOf<String>()
+
+        fun add(value: CharSequence?) {
+            val text = value?.toString()?.trim().orEmpty()
+            if (text.isNotBlank()) {
+                parts.add(text)
+            }
+        }
+
+        add(extras.getCharSequence(Notification.EXTRA_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_BIG_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_INFO_TEXT))
+        extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.forEach(::add)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            @Suppress("DEPRECATION")
+            extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+                ?.let(Notification.MessagingStyle.Message::getMessagesFromBundleArray)
+                ?.mapNotNull { it.text }
+                ?.forEach(::add)
+        }
+
+        return parts.distinct()
+    }
+
+    private fun isPrivacyRedactionPlaceholder(text: String, placeholders: Set<String>): Boolean {
+        val normalized = text
+            .trim()
+            .lowercase(Locale.ROOT)
+            .replace(Regex("\\s+"), " ")
+
+        return placeholders.any { placeholder ->
+            val normalizedPlaceholder = placeholder
+                .trim()
+                .lowercase(Locale.ROOT)
+                .replace(Regex("\\s+"), " ")
+            normalizedPlaceholder.isNotBlank() &&
+                (normalized == normalizedPlaceholder ||
+                    normalized.contains(normalizedPlaceholder))
+        }
     }
 
     private fun buildMirroredNotification(

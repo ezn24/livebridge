@@ -230,6 +230,13 @@
     }
   ],
   "blocked_source_packages": [],
+  "privacy_redaction_placeholders": [
+    "sensitive content hidden",
+    "content hidden",
+    "hidden content",
+    "notification content hidden",
+    "unlock to view"
+  ],
   "known_navigation_packages": [
     "ru.dublgis.dgismobile",
     "ru.yandex.yandexmaps",

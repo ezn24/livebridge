@@ -349,6 +349,25 @@
     }
   ],
   "blocked_source_packages": [],
+  "privacy_redaction_placeholders": [
+    "sensitive content hidden",
+    "content hidden",
+    "hidden content",
+    "notification content hidden",
+    "unlock to view",
+    "содержимое скрыто",
+    "контент скрыт",
+    "скрытое содержимое",
+    "разблокируйте, чтобы посмотреть",
+    "内容已隐藏",
+    "敏感内容已隐藏",
+    "通知内容已隐藏",
+    "解锁即可查看",
+    "內容已隱藏",
+    "敏感內容已隱藏",
+    "通知內容已隱藏",
+    "解鎖即可查看"
+  ],
   "known_navigation_packages": [
     "ru.dublgis.dgismobile",
     "ru.yandex.yandexmaps",

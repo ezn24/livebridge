@@ -221,6 +221,17 @@
     }
   ],
   "blocked_source_packages": [],
+  "privacy_redaction_placeholders": [
+    "sensitive content hidden",
+    "content hidden",
+    "hidden content",
+    "notification content hidden",
+    "unlock to view",
+    "содержимое скрыто",
+    "контент скрыт",
+    "скрытое содержимое",
+    "разблокируйте, чтобы посмотреть"
+  ],
   "known_navigation_packages": [
     "ru.dublgis.dgismobile",
     "ru.yandex.yandexmaps",
