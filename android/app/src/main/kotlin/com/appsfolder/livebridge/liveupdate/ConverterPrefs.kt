@@ -104,6 +104,15 @@ class ConverterPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_BUG_REPORT_AUTO_COPY_ENABLED, value).apply()
     }
 
+    fun getAppLanguageTag(): String {
+        return prefs.getString(KEY_APP_LANGUAGE_TAG, "system") ?: "system"
+    }
+
+    fun setAppLanguageTag(value: String?) {
+        val normalized = value?.trim().orEmpty().ifBlank { "system" }
+        prefs.edit().putString(KEY_APP_LANGUAGE_TAG, normalized).apply()
+    }
+
     fun getConversionLogMaxBytes(): Int {
         return prefs.getInt(
             KEY_CONVERSION_LOG_MAX_BYTES,
@@ -765,6 +774,7 @@ class ConverterPrefs(context: Context) {
             "prevent_mirror_dismiss_enabled"
         private const val KEY_CONVERSION_LOG_ENABLED = "conversion_log_enabled"
         private const val KEY_BUG_REPORT_AUTO_COPY_ENABLED = "bug_report_auto_copy_enabled"
+        private const val KEY_APP_LANGUAGE_TAG = "app_language_tag"
         private const val KEY_CONVERSION_LOG_MAX_BYTES = "conversion_log_max_bytes"
         private const val KEY_SYNC_DND_ENABLED = "sync_dnd_enabled"
         private const val KEY_UPDATE_CHECKS_ENABLED = "update_checks_enabled"

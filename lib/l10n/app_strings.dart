@@ -147,7 +147,7 @@ class AppStrings {
     en: 'Dictionary updated from GitHub.',
     ru: 'Словарь обновлен из GitHub.',
     tr: 'Sözlük GitHub\'dan güncellendi.',
-    ptBr: 'Dicionário atualizado pelo GitHub.',
+    ptBr: 'Dicionário atualizado do GitHub.',
     zhHans: '词典已从 GitHub 更新。',
     zhHant: '字典已從 GitHub 更新。',
   );
@@ -165,7 +165,7 @@ class AppStrings {
     en: 'Failed to update dictionary from GitHub.',
     ru: 'Не удалось обновить словарь из GitHub.',
     tr: 'Sözlük GitHub\'dan güncellenemedi.',
-    ptBr: 'Falha ao atualizar o dicionário pelo GitHub.',
+    ptBr: 'Falha ao atualizar o dicionário do GitHub.',
     zhHans: '从 GitHub 更新词典失败。',
     zhHant: '從 GitHub 更新字典失敗。',
   );
@@ -182,8 +182,8 @@ class AppStrings {
   String get dictionaryManageSubtitle => tr(
     en: 'tap to manage',
     ru: 'нажмите для управления',
-    tr: 'yönetmek için dokunun',
-    ptBr: 'toque para gerenciar',
+    tr: 'yönetmek için açın',
+    ptBr: 'toque para abrir',
     zhHans: '点按以管理',
     zhHant: '點按以管理',
   );
@@ -200,7 +200,7 @@ class AppStrings {
   String get dictionaryLanguagesSubtitle => tr(
     en: 'tap to choose',
     ru: 'нажмите для выбора',
-    tr: 'seçmek için dokunun',
+    tr: 'seçmek için açın',
     ptBr: 'toque para escolher',
     zhHans: '点按以选择',
     zhHant: '點按以選擇',
@@ -281,10 +281,37 @@ class AppStrings {
   String get appConfigTitle => tr(
     en: 'App config',
     ru: 'Настройки приложения',
-    tr: 'Uygulama yapılandırması',
-    ptBr: 'Configuração do app',
-    zhHans: '应用配置',
-    zhHant: '應用配置',
+    tr: 'Uygulama ayarları',
+    ptBr: 'Ajustes do app',
+    zhHans: '应用设置',
+    zhHant: '應用設定',
+  );
+
+  String get appLanguageTitle => tr(
+    en: 'App language',
+    ru: 'Язык приложения',
+    tr: 'Uygulama dili',
+    ptBr: 'Idioma do app',
+    zhHans: '应用语言',
+    zhHant: '應用語言',
+  );
+
+  String get appLanguagePickerTitle => tr(
+    en: 'Choose app language',
+    ru: 'Выберите язык приложения',
+    tr: 'Uygulama dilini seçin',
+    ptBr: 'Escolha o idioma do app',
+    zhHans: '选择应用语言',
+    zhHant: '選擇應用語言',
+  );
+
+  String get appLanguageSystem => tr(
+    en: 'Auto',
+    ru: 'Автовыбор',
+    tr: 'Otomatik',
+    ptBr: 'Automático',
+    zhHans: '自动',
+    zhHant: '自動',
   );
 
   String get brandSpecificTitle => tr(
@@ -1130,9 +1157,9 @@ class AppStrings {
     en: 'Alt background mode',
     ru: 'Альтернативный фоновый режим',
     tr: 'Alternatif arka plan modu',
-    ptBr: 'Modo alternativo em segundo plano',
-    zhHans: '替代后台模式',
-    zhHant: '替代背景模式',
+    ptBr: 'Modo de segundo plano alternativo',
+    zhHans: '备用后台模式',
+    zhHant: '備用背景模式',
   );
 
   String get networkSpeedTitle => tr(
@@ -1165,16 +1192,16 @@ class AppStrings {
   String get preventDismissingTitle => tr(
     en: 'Prevent dismissing',
     ru: 'Запретить скрытие',
-    tr: 'Kapatmayı engelle',
-    ptBr: 'Impedir dispensa',
-    zhHans: '防止被关闭',
-    zhHant: '防止被關閉',
+    tr: 'Bildirimi kapatmayı engelle',
+    ptBr: 'Impedir fechamento',
+    zhHans: '防止通知被关闭',
+    zhHant: '防止通知被關閉',
   );
 
   String get updateChecksTitle => tr(
     en: 'Update checking',
     ru: 'Проверка обновлений',
-    tr: 'Güncelleme denetimi',
+    tr: 'Güncellemeleri denetle',
     ptBr: 'Verificação de atualizações',
     zhHans: '检查更新',
     zhHant: '檢查更新',

@@ -10,6 +10,7 @@ import '../../models/conversion_log_entry.dart';
 import '../../platform/livebridge_platform.dart';
 import '../../theme/livebridge_tokens.dart';
 import '../../utils/livebridge_haptics.dart';
+import '../../utils/version_compare.dart';
 import '../../widgets/redesign/lb_bottom_floating_nav.dart';
 import '../../widgets/redesign/lb_bottom_nav_item.dart';
 import '../../widgets/redesign/lb_conversion_log_entry_sheet.dart';
@@ -270,6 +271,21 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
       final bool updateAvailable = await updateAvailableFuture;
       final String latestReleaseVersion = await latestReleaseVersionFuture;
       final String currentAppVersion = await currentAppVersionFuture;
+      final bool sanitizedUpdateAvailable =
+          updateAvailable &&
+          lbIsReleaseNewer(
+            currentVersion: currentAppVersion,
+            latestVersion: latestReleaseVersion,
+          );
+      final String sanitizedLatestReleaseVersion = sanitizedUpdateAvailable
+          ? latestReleaseVersion
+          : '';
+
+      if (updateAvailable && !sanitizedUpdateAvailable) {
+        unawaited(LiveBridgePlatform.setUpdateCachedAvailable(false));
+        unawaited(LiveBridgePlatform.setUpdateCachedLatestVersion(''));
+      }
+
       final DeviceInfo deviceInfo = await deviceInfoFuture;
       final bool conversionLogEnabled = await conversionLogEnabledFuture;
 
@@ -283,8 +299,8 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
         _canPostPromoted = canPostPromoted;
         _hidePromotedAccess = deviceInfo.shouldHideLiveUpdatesPromotion;
         _isLiveBridgeRunning = converterEnabled;
-        _updateAvailable = updateAvailable;
-        _latestReleaseVersion = latestReleaseVersion;
+        _updateAvailable = sanitizedUpdateAvailable;
+        _latestReleaseVersion = sanitizedLatestReleaseVersion;
         _currentAppVersion = currentAppVersion;
         _isConversionLogEnabled = conversionLogEnabled;
       });

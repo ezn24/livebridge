@@ -90,6 +90,9 @@ class LiveBridgePlatform {
       _askBool('getBugReportAutoCopyEnabled');
   static Future<bool> setBugReportAutoCopyEnabled(bool value) =>
       _askBool('setBugReportAutoCopyEnabled', {'value': value});
+  static Future<String> getAppLanguageTag() => _askStr('getAppLanguageTag');
+  static Future<bool> setAppLanguageTag(String value) =>
+      _askBool('setAppLanguageTag', {'value': value});
   static Future<int> getConversionLogMaxBytes() =>
       _askInt('getConversionLogMaxBytes');
   static Future<bool> setConversionLogMaxBytes(int value) =>

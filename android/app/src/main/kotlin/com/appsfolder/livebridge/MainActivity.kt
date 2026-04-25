@@ -315,6 +315,12 @@ class MainActivity : FlutterActivity() {
                 res.success(true)
             }
 
+            "getAppLanguageTag" -> res.success(prefs.getAppLanguageTag())
+            "setAppLanguageTag" -> {
+                prefs.setAppLanguageTag(call.argument<String>("value"))
+                res.success(true)
+            }
+
             "getConversionLogMaxBytes" -> res.success(prefs.getConversionLogMaxBytes())
             "setConversionLogMaxBytes" -> {
                 prefs.setConversionLogMaxBytes(call.argument<Number>("value")?.toInt() ?: 0)

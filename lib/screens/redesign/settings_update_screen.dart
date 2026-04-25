@@ -9,6 +9,7 @@ import '../../l10n/app_strings.dart';
 import '../../platform/livebridge_platform.dart';
 import '../../theme/livebridge_tokens.dart';
 import '../../utils/livebridge_haptics.dart';
+import '../../utils/version_compare.dart';
 import '../../widgets/redesign/lb_detail_screen.dart';
 import '../../widgets/redesign/lb_icon.dart';
 import '../../widgets/redesign/lb_list_component.dart';
@@ -85,10 +86,24 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
           LiveBridgePlatform.getAppVersionName();
       final Future<bool> updateAvailableFuture =
           LiveBridgePlatform.getUpdateCachedAvailable();
+      final Future<String> latestVersionFuture =
+          LiveBridgePlatform.getUpdateCachedLatestVersion();
 
       final bool updateChecksEnabled = await updateChecksFuture;
       final String currentVersion = await currentVersionFuture;
       final bool updateAvailable = await updateAvailableFuture;
+      final String latestVersion = await latestVersionFuture;
+      final bool sanitizedUpdateAvailable =
+          updateAvailable &&
+          lbIsReleaseNewer(
+            currentVersion: currentVersion,
+            latestVersion: latestVersion,
+          );
+
+      if (updateAvailable && !sanitizedUpdateAvailable) {
+        unawaited(LiveBridgePlatform.setUpdateCachedAvailable(false));
+        unawaited(LiveBridgePlatform.setUpdateCachedLatestVersion(''));
+      }
 
       if (!mounted) {
         return;
@@ -97,7 +112,7 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
       setState(() {
         _updateChecksEnabled = updateChecksEnabled;
         _currentVersion = currentVersion;
-        _updateAvailable = updateAvailable;
+        _updateAvailable = sanitizedUpdateAvailable;
       });
     } catch (_) {}
   }
@@ -163,7 +178,7 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
       final String currentVersion = _currentVersion.isNotEmpty
           ? _currentVersion
           : await LiveBridgePlatform.getAppVersionName();
-      final bool hasUpdate = _isReleaseNewer(
+      final bool hasUpdate = lbIsReleaseNewer(
         currentVersion: currentVersion,
         latestVersion: latest.version,
       );
@@ -255,66 +270,6 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
     } finally {
       client.close(force: true);
     }
-  }
-
-  bool _isReleaseNewer({
-    required String currentVersion,
-    required String latestVersion,
-  }) {
-    final List<int> currentParts = _extractVersionParts(currentVersion);
-    final List<int> latestParts = _extractVersionParts(latestVersion);
-    if (latestParts.isEmpty || currentParts.isEmpty) {
-      return false;
-    }
-
-    final int maxLen = currentParts.length > latestParts.length
-        ? currentParts.length
-        : latestParts.length;
-    for (int index = 0; index < maxLen; index += 1) {
-      final int current = index < currentParts.length ? currentParts[index] : 0;
-      final int latest = index < latestParts.length ? latestParts[index] : 0;
-      if (latest > current) {
-        return true;
-      }
-      if (latest < current) {
-        return false;
-      }
-    }
-    return false;
-  }
-
-  List<int> _extractVersionParts(String input) {
-    final RegExpMatch? match = RegExp(
-      r'v?\d+(?:\.\d+){1,3}(?:\+\d+)?',
-      caseSensitive: false,
-    ).firstMatch(input.trim());
-    if (match == null) {
-      return const <int>[];
-    }
-
-    final String normalized = match
-        .group(0)!
-        .trim()
-        .toLowerCase()
-        .replaceFirst(RegExp(r'^v'), '');
-    if (normalized.isEmpty) {
-      return const <int>[];
-    }
-
-    final List<String> parts = normalized.split('+');
-    final String coreVersion = parts.first;
-    final List<int> versionParts = coreVersion
-        .split('.')
-        .map((String value) => int.tryParse(value) ?? 0)
-        .toList();
-    if (versionParts.isEmpty) {
-      return const <int>[];
-    }
-
-    if (parts.length > 1) {
-      versionParts.add(int.tryParse(parts[1]) ?? 0);
-    }
-    return versionParts;
   }
 
   @override

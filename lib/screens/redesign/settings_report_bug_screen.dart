@@ -104,6 +104,8 @@ class _SettingsReportBugScreenState extends State<SettingsReportBugScreen> {
         LiveBridgePlatform.getPreventMirrorDismissEnabled();
     final Future<bool> updateChecksFuture =
         LiveBridgePlatform.getUpdateChecksEnabled();
+    final Future<String> appLanguageFuture =
+        LiveBridgePlatform.getAppLanguageTag();
     final Future<bool> onlyWithProgressFuture =
         LiveBridgePlatform.getOnlyWithProgress();
     final Future<bool> textProgressFuture =
@@ -218,6 +220,7 @@ class _SettingsReportBugScreenState extends State<SettingsReportBugScreen> {
         'sync_dnd_enabled': await syncDndFuture,
         'prevent_mirror_dismiss_enabled': await preventDismissingFuture,
         'update_checks_enabled': await updateChecksFuture,
+        'app_language': await appLanguageFuture,
         'only_with_progress': await onlyWithProgressFuture,
         'text_progress_enabled': await textProgressFuture,
         'smart_detection_enabled': await smartStatusFuture,
