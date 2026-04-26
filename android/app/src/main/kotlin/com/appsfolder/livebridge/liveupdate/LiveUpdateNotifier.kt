@@ -63,6 +63,7 @@ object LiveUpdateNotifier {
         """(\badb\b|android\s+debug\s+bridge|usb\s+debug(?:ging)?|wireless\s+debug(?:ging)?|\bdebug(?:ging|ger)?\b|developer\s+options?|usb[-\s]?отладк\p{L}*|беспровод\p{L}*\s+отладк\p{L}*|отладк\p{L}*|параметр\p{L}*\s+разработчик\p{L}*)""",
         setOf(RegexOption.IGNORE_CASE)
     )
+    private val mediaProgressOnlyPattern = Regex("""^\d{1,3}\s*%$""")
     private val weatherCelsiusPattern = Regex("""(?:°\s*[cс]|℃)""", setOf(RegexOption.IGNORE_CASE))
     private val weatherFahrenheitPattern = Regex("""(?:°\s*[fф]|℉)""", setOf(RegexOption.IGNORE_CASE))
     private val transparentActionIcon by lazy {
@@ -912,7 +913,7 @@ object LiveUpdateNotifier {
             ?: extractTitle(source, appName, allowRemoteViewTextFallback)
         val text = textOverride?.takeIf { it.isNotBlank() }
             ?: extractText(source, allowRemoteViewTextFallback)
-        val displayTitle = if (appPresentationOverride.usesExplicitSources()) {
+        val configuredDisplayTitle = if (appPresentationOverride.usesExplicitSources()) {
             when (appPresentationOverride.resolvedTitleSource()) {
                 NotificationTitleSource.NOTIFICATION_TITLE -> title.ifBlank { appName }
                 NotificationTitleSource.APP_TITLE -> appName.ifBlank { title }
@@ -923,7 +924,7 @@ object LiveUpdateNotifier {
                 CompactTextSource.TITLE -> title
             }
         }
-        val displayText = if (appPresentationOverride.usesExplicitSources()) {
+        val configuredDisplayText = if (appPresentationOverride.usesExplicitSources()) {
             when (appPresentationOverride.resolvedContentSource()) {
                 NotificationContentSource.NOTIFICATION_TEXT -> text.ifBlank { title }
                 NotificationContentSource.NOTIFICATION_TITLE -> title.ifBlank { text }
@@ -931,11 +932,25 @@ object LiveUpdateNotifier {
         } else if (
             appPresentationOverride.compactTextSource == CompactTextSource.TEXT &&
             title.isNotBlank() &&
-            title != displayTitle
+            title != configuredDisplayTitle
         ) {
             title
         } else {
             text
+        }
+        val displayTitle = if (preferMediaControls) {
+            title.takeIfMeaningfulMediaPlaybackText()
+                ?: configuredDisplayTitle.takeIfMeaningfulMediaPlaybackText()
+                ?: appName
+        } else {
+            configuredDisplayTitle
+        }
+        val displayText = if (preferMediaControls) {
+            text.takeIfMeaningfulMediaPlaybackText()
+                ?: configuredDisplayText.takeIfMeaningfulMediaPlaybackText()
+                ?: ""
+        } else {
+            configuredDisplayText
         }
         val aospCuttingEnabled = runtimePrefs.getAospCuttingEnabled()
         val aospCuttingLength = runtimePrefs.getAospCuttingLength()
@@ -1025,9 +1040,17 @@ object LiveUpdateNotifier {
                         .setProgress(percent)
                         .setStyledByProgress(true)
                 )
+                val progressShortText = if (preferMediaControls) {
+                    smartShortTextOverride.takeIfMeaningfulMediaPlaybackText()
+                        ?: displayTitle.takeIfMeaningfulMediaPlaybackText()
+                        ?: displayText.takeIfMeaningfulMediaPlaybackText()
+                        ?: appName
+                } else {
+                    smartShortTextOverride ?: "$percent%"
+                }
                 builder.setShortCriticalText(
                     limitIslandText(
-                        smartShortTextOverride ?: "$percent%",
+                        progressShortText,
                         aospCuttingEnabled,
                         aospCuttingLength
                     )
@@ -1057,8 +1080,17 @@ object LiveUpdateNotifier {
         }
 
         if (hyperBridgeEnabled) {
+            val mediaTicker = if (preferMediaControls) {
+                smartShortTextOverride.takeIfMeaningfulMediaPlaybackText()
+                    ?: displayTitle.takeIfMeaningfulMediaPlaybackText()
+                    ?: displayText.takeIfMeaningfulMediaPlaybackText()
+                    ?: appName
+            } else {
+                null
+            }
             val hyperTicker = when {
                 otpOverride != null -> otpShortTextOverride ?: otpOverride.code
+                mediaTicker != null -> mediaTicker
                 !smartShortTextOverride.isNullOrBlank() -> smartShortTextOverride
                 determinateProgressPercent != null -> "$determinateProgressPercent%"
                 else -> displayTitle
@@ -3096,10 +3128,16 @@ object LiveUpdateNotifier {
             } else {
                 rawPositionMs
             }
+            val description = metadata?.description
             val title = metadata
                 ?.getString(MediaMetadata.METADATA_KEY_TITLE)
                 ?.trim()
                 ?.ifBlank { null }
+                ?: description
+                    ?.title
+                    ?.toString()
+                    ?.trim()
+                    ?.ifBlank { null }
             val artist = metadata
                 ?.getString(MediaMetadata.METADATA_KEY_ARTIST)
                 ?.trim()
@@ -3108,8 +3146,14 @@ object LiveUpdateNotifier {
                     ?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
                     ?.trim()
                     ?.ifBlank { null }
+                ?: description
+                    ?.subtitle
+                    ?.toString()
+                    ?.trim()
+                    ?.ifBlank { null }
             val albumArt = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                 ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
+                ?: description?.iconBitmap
 
             MediaPlaybackSnapshot(
                 title = title,
@@ -3204,6 +3248,14 @@ object LiveUpdateNotifier {
             return formatMillisecondsAsClock(snapshot.positionMs)
         }
         return if (snapshot.isPlaying) "PLAY" else "PAUSE"
+    }
+
+    private fun String?.takeIfMeaningfulMediaPlaybackText(): String? {
+        val normalized = this?.trim().orEmpty()
+        if (normalized.isBlank() || mediaProgressOnlyPattern.matches(normalized)) {
+            return null
+        }
+        return normalized
     }
 
     private fun formatMillisecondsAsClock(milliseconds: Long): String {
