@@ -872,6 +872,33 @@ class AppStrings {
     zhHant: '已是最新版本',
   );
 
+  String get appUpdateLogTitle => tr(
+    en: 'What\'s new',
+    ru: 'Что нового',
+    tr: 'Güncelleme günlüğü',
+    ptBr: 'Registro de atualização',
+    zhHans: '更新日志',
+    zhHant: '更新紀錄',
+  );
+
+  String get appUpdateLogLoading => tr(
+    en: 'loading update log...',
+    ru: 'загружаем список изменений...',
+    tr: 'güncelleme günlüğü yükleniyor...',
+    ptBr: 'carregando registro de atualização...',
+    zhHans: '正在加载更新日志...',
+    zhHant: '正在載入更新紀錄...',
+  );
+
+  String get appUpdateLogUnavailable => tr(
+    en: 'update log is not available',
+    ru: 'список изменений недоступен',
+    tr: 'güncelleme günlüğü mevcut değil',
+    ptBr: 'registro de atualização indisponível',
+    zhHans: '更新日志不可用',
+    zhHant: '更新紀錄無法使用',
+  );
+
   String get visitProjectPageTitle => tr(
     en: 'Visit project page',
     ru: 'Открыть страницу проекта',

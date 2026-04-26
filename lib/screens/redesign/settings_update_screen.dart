@@ -42,6 +42,9 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
   bool _updateAvailable = false;
   bool _isChecking = false;
   String _currentVersion = '';
+  String _latestReleaseVersion = '';
+  String _releaseNotes = '';
+  bool _isLoadingReleaseNotes = false;
   late final AnimationController _refreshRotationController;
 
   @override
@@ -113,7 +116,14 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
         _updateChecksEnabled = updateChecksEnabled;
         _currentVersion = currentVersion;
         _updateAvailable = sanitizedUpdateAvailable;
+        _latestReleaseVersion = sanitizedUpdateAvailable ? latestVersion : '';
+        if (!sanitizedUpdateAvailable) {
+          _releaseNotes = '';
+        }
       });
+      if (sanitizedUpdateAvailable) {
+        unawaited(_loadReleaseNotesForUpdate(latestVersion));
+      }
     } catch (_) {}
   }
 
@@ -212,6 +222,8 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
       setState(() {
         _currentVersion = currentVersion;
         _updateAvailable = hasUpdate;
+        _latestReleaseVersion = hasUpdate ? latest.version : '';
+        _releaseNotes = hasUpdate ? _formatReleaseNotes(latest.body) : '';
       });
     } catch (_) {
       if (showFailureToast && mounted) {
@@ -220,6 +232,48 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
     } finally {
       if (mounted) {
         _setChecking(false);
+      }
+    }
+  }
+
+  Future<void> _loadReleaseNotesForUpdate(String expectedVersion) async {
+    if (_isLoadingReleaseNotes || expectedVersion.trim().isEmpty) {
+      return;
+    }
+    if (mounted) {
+      setState(() => _isLoadingReleaseNotes = true);
+    }
+    try {
+      final _GithubReleaseInfo? latest = await _fetchLatestRelease();
+      if (latest == null || !mounted) {
+        return;
+      }
+
+      final String currentVersion = _currentVersion.isNotEmpty
+          ? _currentVersion
+          : await LiveBridgePlatform.getAppVersionName();
+      final bool hasUpdate = lbIsReleaseNewer(
+        currentVersion: currentVersion,
+        latestVersion: latest.version,
+      );
+      setState(() {
+        _currentVersion = currentVersion;
+        _updateAvailable = hasUpdate;
+        _latestReleaseVersion = hasUpdate ? latest.version : '';
+        _releaseNotes = hasUpdate ? _formatReleaseNotes(latest.body) : '';
+      });
+      if (hasUpdate) {
+        unawaited(
+          LiveBridgePlatform.setUpdateCachedLatestVersion(latest.version),
+        );
+        unawaited(LiveBridgePlatform.setUpdateCachedAvailable(true));
+      } else {
+        unawaited(LiveBridgePlatform.setUpdateCachedAvailable(false));
+        unawaited(LiveBridgePlatform.setUpdateCachedLatestVersion(''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingReleaseNotes = false);
       }
     }
   }
@@ -264,12 +318,110 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
       return _GithubReleaseInfo(
         version: version,
         htmlUrl: _projectDownloadPageUrl,
+        body: (data['body'] as String?)?.trim() ?? '',
       );
     } catch (_) {
       return null;
     } finally {
       client.close(force: true);
     }
+  }
+
+  String _formatReleaseNotes(String raw) {
+    final String normalized = raw
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .replaceAll(RegExp(r'<!--[\s\S]*?-->'), '')
+        .trim();
+    if (normalized.isEmpty) {
+      return '';
+    }
+
+    final List<String> lines = <String>[];
+    for (final String rawLine in normalized.split('\n')) {
+      String line = rawLine.trimRight();
+      if (line.trim().isEmpty) {
+        if (lines.isNotEmpty && lines.last.isNotEmpty) {
+          lines.add('');
+        }
+        continue;
+      }
+
+      line = line
+          .replaceAll(RegExp(r'^#{1,6}\s*'), '')
+          .replaceAll(RegExp(r'^[-*]\s+'), '• ')
+          .replaceAll(RegExp(r'^\d+\.\s+'), '• ')
+          .replaceAll(RegExp(r'!\[[^\]]*\]\([^)]*\)'), '')
+          .replaceAllMapped(
+            RegExp(r'\[([^\]]+)\]\([^)]*\)'),
+            (Match match) => match.group(1) ?? '',
+          )
+          .replaceAllMapped(
+            RegExp(r'`([^`]+)`'),
+            (Match match) => match.group(1) ?? '',
+          )
+          .replaceAllMapped(
+            RegExp(r'\*\*([^*]+)\*\*'),
+            (Match match) => match.group(1) ?? '',
+          )
+          .replaceAllMapped(
+            RegExp(r'__([^_]+)__'),
+            (Match match) => match.group(1) ?? '',
+          )
+          .trimRight();
+
+      if (line.trim().isNotEmpty) {
+        lines.add(line);
+      }
+    }
+
+    return lines.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+  }
+
+  Widget _buildReleaseNotesCard(AppStrings strings, LbPalette palette) {
+    final String notes = _releaseNotes.trim();
+    final bool hasNotes = notes.isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: LbSpacing.md,
+        vertical: LbSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(LbRadius.card),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            strings.appUpdateLogTitle,
+            style: LbTextStyles.body.copyWith(color: palette.textPrimary),
+          ),
+          const SizedBox(height: LbSpacing.sm),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: Text(
+              hasNotes
+                  ? notes
+                  : _isLoadingReleaseNotes
+                  ? strings.appUpdateLogLoading
+                  : strings.appUpdateLogUnavailable,
+              key: ValueKey<String>(
+                hasNotes
+                    ? 'notes:${_latestReleaseVersion.trim()}'
+                    : 'placeholder:$_isLoadingReleaseNotes',
+              ),
+              style: LbTextStyles.caption.copyWith(
+                color: palette.textSecondary,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -355,6 +507,10 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
             ),
           ),
         ),
+        if (_updateAvailable) ...<Widget>[
+          const SizedBox(height: LbSpacing.sm),
+          _buildReleaseNotesCard(strings, palette),
+        ],
         const SizedBox(height: LbSpacing.md),
         LbListComponent(
           items: <LbListItemData>[
@@ -407,8 +563,13 @@ class _SettingsUpdateScreenState extends State<SettingsUpdateScreen>
 }
 
 class _GithubReleaseInfo {
-  const _GithubReleaseInfo({required this.version, required this.htmlUrl});
+  const _GithubReleaseInfo({
+    required this.version,
+    required this.htmlUrl,
+    required this.body,
+  });
 
   final String version;
   final String htmlUrl;
+  final String body;
 }
