@@ -701,9 +701,18 @@ class AppStrings {
     zhHant: '媒體播放',
   );
 
+  String get showMediaOnLockTitle => tr(
+    en: 'Show media on lockscreen',
+    ru: 'Медиа на экране блокировки',
+    tr: 'Kilit ekranında medyayı göster',
+    ptBr: 'Mostrar mídia na tela bloqueada',
+    zhHans: '在锁屏显示媒体',
+    zhHant: '在鎖定畫面顯示媒體',
+  );
+
   String get weatherBroadcastsTitle => tr(
     en: 'Weather broadcasts',
-    ru: 'Погодные уведомления',
+    ru: 'Прогнозы погоды',
     tr: 'Hava durumu bildirimleri',
     ptBr: 'Alertas de clima',
     zhHans: '天气播报',

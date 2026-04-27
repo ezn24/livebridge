@@ -952,6 +952,14 @@ object LiveUpdateNotifier {
         } else {
             configuredDisplayText
         }
+        val visibility = if (
+            preferMediaControls &&
+            !runtimePrefs.getSmartMediaPlaybackShowOnLockScreen()
+        ) {
+            NotificationCompat.VISIBILITY_SECRET
+        } else {
+            NotificationCompat.VISIBILITY_PUBLIC
+        }
         val aospCuttingEnabled = runtimePrefs.getAospCuttingEnabled()
         val aospCuttingLength = runtimePrefs.getAospCuttingLength()
         val hyperBridgeEnabled = runtimePrefs.getHyperBridgeEnabled()
@@ -988,7 +996,7 @@ object LiveUpdateNotifier {
             .setShowWhen(false)
             .setColor(progressColor)
             .setCategory(if (hasProgress) Notification.CATEGORY_PROGRESS else Notification.CATEGORY_STATUS)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setVisibility(visibility)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
 
         val preferredSmallIcon = when (appPresentationOverride.iconSource) {

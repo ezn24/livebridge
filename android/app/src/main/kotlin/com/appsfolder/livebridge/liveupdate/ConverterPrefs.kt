@@ -423,6 +423,16 @@ class ConverterPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_SMART_MEDIA_PLAYBACK_ENABLED, value).apply()
     }
 
+    fun getSmartMediaPlaybackShowOnLockScreen(): Boolean {
+        return prefs.getBoolean(KEY_SMART_MEDIA_PLAYBACK_SHOW_ON_LOCK_SCREEN, false)
+    }
+
+    fun setSmartMediaPlaybackShowOnLockScreen(value: Boolean) {
+        prefs.edit()
+            .putBoolean(KEY_SMART_MEDIA_PLAYBACK_SHOW_ON_LOCK_SCREEN, value)
+            .apply()
+    }
+
     fun getSmartNavigationEnabled(): Boolean {
         return prefs.getBoolean(KEY_SMART_NAVIGATION_ENABLED, true)
     }
@@ -790,6 +800,8 @@ class ConverterPrefs(context: Context) {
         private const val KEY_SMART_TAXI_ENABLED = "smart_taxi_enabled"
         private const val KEY_SMART_DELIVERY_ENABLED = "smart_delivery_enabled"
         private const val KEY_SMART_MEDIA_PLAYBACK_ENABLED = "smart_media_playback_enabled"
+        private const val KEY_SMART_MEDIA_PLAYBACK_SHOW_ON_LOCK_SCREEN =
+            "smart_media_playback_show_on_lock_screen"
         private const val KEY_SMART_NAVIGATION_ENABLED = "smart_navigation_enabled"
         private const val KEY_SMART_WEATHER_ENABLED = "smart_weather_enabled"
         private const val KEY_SMART_EXTERNAL_DEVICES_ENABLED = "smart_external_devices_enabled"

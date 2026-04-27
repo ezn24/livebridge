@@ -205,6 +205,10 @@ class LiveBridgePlatform {
       _askBool('getSmartMediaPlaybackEnabled');
   static Future<bool> setSmartMediaPlaybackEnabled(bool value) =>
       _askBool('setSmartMediaPlaybackEnabled', {'value': value});
+  static Future<bool> getSmartMediaPlaybackShowOnLockScreen() =>
+      _askBool('getSmartMediaPlaybackShowOnLockScreen');
+  static Future<bool> setSmartMediaPlaybackShowOnLockScreen(bool value) =>
+      _askBool('setSmartMediaPlaybackShowOnLockScreen', {'value': value});
   static Future<bool> getSmartNavigationEnabled() =>
       _askBool('getSmartNavigationEnabled');
   static Future<bool> setSmartNavigationEnabled(bool value) =>

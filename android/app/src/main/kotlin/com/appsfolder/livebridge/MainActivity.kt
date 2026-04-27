@@ -505,6 +505,15 @@ class MainActivity : FlutterActivity() {
                 prefs.setSmartMediaPlaybackEnabled(call.argument<Boolean>("value") ?: false)
                 res.success(true)
             }
+            "getSmartMediaPlaybackShowOnLockScreen" -> {
+                res.success(prefs.getSmartMediaPlaybackShowOnLockScreen())
+            }
+            "setSmartMediaPlaybackShowOnLockScreen" -> {
+                prefs.setSmartMediaPlaybackShowOnLockScreen(
+                    call.argument<Boolean>("value") ?: false
+                )
+                res.success(true)
+            }
 
             "getSmartNavigationEnabled" -> res.success(prefs.getSmartNavigationEnabled())
             "setSmartNavigationEnabled" -> {

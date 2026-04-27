@@ -20,6 +20,7 @@ class RulesMiscellaneousScreen extends StatefulWidget {
 class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
   bool _navigationEnabled = true;
   bool _mediaPlaybackEnabled = true;
+  bool _showMediaOnLock = false;
   bool _weatherEnabled = false;
 
   @override
@@ -36,11 +37,14 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
           LiveBridgePlatform.getSmartNavigationEnabled();
       final Future<bool> mediaPlaybackFuture =
           LiveBridgePlatform.getSmartMediaPlaybackEnabled();
+      final Future<bool> showMediaOnLockFuture =
+          LiveBridgePlatform.getSmartMediaPlaybackShowOnLockScreen();
       final Future<bool> weatherFuture =
           LiveBridgePlatform.getSmartWeatherEnabled();
 
       final bool navigationEnabled = await navigationFuture;
       final bool mediaPlaybackEnabled = await mediaPlaybackFuture;
+      final bool showMediaOnLock = await showMediaOnLockFuture;
       final bool weatherEnabled = await weatherFuture;
 
       if (!mounted) {
@@ -50,6 +54,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
       setState(() {
         _navigationEnabled = navigationEnabled;
         _mediaPlaybackEnabled = mediaPlaybackEnabled;
+        _showMediaOnLock = showMediaOnLock;
         _weatherEnabled = weatherEnabled;
       });
     } catch (_) {}
@@ -69,6 +74,14 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
     }
     setState(() => _mediaPlaybackEnabled = value);
     await LiveBridgePlatform.setSmartMediaPlaybackEnabled(value);
+  }
+
+  Future<void> _setShowMediaOnLock(bool value) async {
+    if (!_mediaPlaybackEnabled || value == _showMediaOnLock) {
+      return;
+    }
+    setState(() => _showMediaOnLock = value);
+    await LiveBridgePlatform.setSmartMediaPlaybackShowOnLockScreen(value);
   }
 
   Future<void> _setWeatherEnabled(bool value) async {
@@ -107,6 +120,23 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
           final bool nextValue = !_mediaPlaybackEnabled;
           unawaited(LiveBridgeHaptics.toggle(nextValue));
           unawaited(_setMediaPlaybackEnabled(nextValue));
+        },
+      ),
+      LbListItemData(
+        title: strings.showMediaOnLockTitle,
+        showChevron: false,
+        toggleValue: _showMediaOnLock,
+        enabled: _mediaPlaybackEnabled,
+        onToggle: (bool value) {
+          unawaited(_setShowMediaOnLock(value));
+        },
+        onTap: () {
+          if (!_mediaPlaybackEnabled) {
+            return;
+          }
+          final bool nextValue = !_showMediaOnLock;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setShowMediaOnLock(nextValue));
         },
       ),
       LbListItemData(
