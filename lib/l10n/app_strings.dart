@@ -710,6 +710,15 @@ class AppStrings {
     zhHant: '在鎖定畫面顯示媒體',
   );
 
+  String get useSymbolsInMediaPlayerTitle => tr(
+    en: 'Use symbols in media player',
+    ru: 'Символы в медиаплеере',
+    tr: 'Medya oynatıcıda semboller kullan',
+    ptBr: 'Usar símbolos no player',
+    zhHans: '在媒体播放器中使用符号',
+    zhHant: '在媒體播放器中使用符號',
+  );
+
   String get weatherBroadcastsTitle => tr(
     en: 'Weather broadcasts',
     ru: 'Прогнозы погоды',
@@ -1124,6 +1133,124 @@ class AppStrings {
     ptBr: 'Reportar um bug',
     zhHans: '报告问题',
     zhHant: '回報問題',
+  );
+
+  String get supportLiveBridgeTitle => tr(
+    en: 'Support LiveBridge',
+    ru: 'Поддержать LiveBridge',
+    tr: 'LiveBridge’i destekle',
+    ptBr: 'Apoiar o LiveBridge',
+    zhHans: '支持 LiveBridge',
+    zhHant: '支持 LiveBridge',
+  );
+
+  String get supportIntroTitle => tr(
+    en: 'Keep LiveBridge free',
+    ru: 'LiveBridge остается бесплатным',
+    tr: 'LiveBridge ücretsiz kalsın',
+    ptBr: 'Mantenha o LiveBridge gratuito',
+    zhHans: '让 LiveBridge 保持免费',
+    zhHant: '讓 LiveBridge 保持免費',
+  );
+
+  String get supportIntroBody => tr(
+    en: 'Donations are optional and never unlock features. They help cover testing devices and development time.',
+    ru: 'Донаты добровольны и не открывают функций. Они помогают покрывать тестовые устройства и время разработки.',
+    tr: 'Bağışlar isteğe bağlıdır ve özellik açmaz. Test cihazlarını ve geliştirme süresini destekler.',
+    ptBr:
+        'Doações são opcionais e não desbloqueiam recursos. Elas ajudam com aparelhos de teste e tempo de desenvolvimento.',
+    zhHans: '捐赠是自愿的，不会解锁功能。它们用于测试设备和开发时间。',
+    zhHant: '捐贈是自願的，不會解鎖功能。它們用於測試裝置和開發時間。',
+  );
+
+  String get supportBoostyTitle => tr(
+    en: 'Boosty',
+    ru: 'Boosty',
+    tr: 'Boosty',
+    ptBr: 'Boosty',
+    zhHans: 'Boosty',
+    zhHant: 'Boosty',
+  );
+
+  String get supportBoostySubtitle => tr(
+    en: 'cards and recurring support',
+    ru: 'карты и регулярная поддержка',
+    tr: 'kartlar ve düzenli destek',
+    ptBr: 'cartões e apoio recorrente',
+    zhHans: '银行卡和定期支持',
+    zhHant: '銀行卡和定期支持',
+  );
+
+  String get supportCryptoTitle => tr(
+    en: 'Crypto',
+    ru: 'Криптовалюта',
+    tr: 'Kripto',
+    ptBr: 'Cripto',
+    zhHans: '加密货币',
+    zhHant: '加密貨幣',
+  );
+
+  String get supportCryptoSubtitle => tr(
+    en: 'copy wallet details',
+    ru: 'скопировать реквизиты кошелька',
+    tr: 'cüzdan bilgilerini kopyala',
+    ptBr: 'copiar dados da carteira',
+    zhHans: '复制钱包信息',
+    zhHant: '複製錢包資訊',
+  );
+
+  String get supportDiscussTitle => tr(
+    en: 'Discuss',
+    ru: 'Discuss',
+    tr: 'Tartış',
+    ptBr: 'Discutir',
+    zhHans: '讨论',
+    zhHant: '討論',
+  );
+
+  String get supportDiscussSubtitle => tr(
+    en: 'telegram topics',
+    ru: 'telegram topics',
+    tr: 'telegram konuları',
+    ptBr: 'tópicos no telegram',
+    zhHans: 'telegram 话题',
+    zhHant: 'telegram 話題',
+  );
+
+  String get supportGithubTitle => tr(
+    en: 'Star on GitHub',
+    ru: 'Поставить звезду на GitHub',
+    tr: 'GitHub',
+    ptBr: 'GitHub',
+    zhHans: 'GitHub',
+    zhHant: 'GitHub',
+  );
+
+  String get supportGithubSubtitle => tr(
+    en: 'source code and releases',
+    ru: 'исходный код и релизы',
+    tr: 'kaynak kod ve sürümler',
+    ptBr: 'código-fonte e versões',
+    zhHans: '源代码和版本发布',
+    zhHant: '原始碼和版本發布',
+  );
+
+  String get supportMethodNotConfigured => tr(
+    en: 'Support method is not configured yet.',
+    ru: 'Способ поддержки еще не настроен.',
+    tr: 'Destek yöntemi henüz yapılandırılmadı.',
+    ptBr: 'O método de apoio ainda não foi configurado.',
+    zhHans: '支持方式尚未配置。',
+    zhHant: '支持方式尚未設定。',
+  );
+
+  String get supportCryptoCopied => tr(
+    en: 'Crypto details copied',
+    ru: 'Криптореквизиты скопированы',
+    tr: 'Kripto bilgileri kopyalandı',
+    ptBr: 'Dados de cripto copiados',
+    zhHans: '加密货币信息已复制',
+    zhHant: '加密貨幣資訊已複製',
   );
 
   String get bugReportCopied => tr(

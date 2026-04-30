@@ -433,6 +433,16 @@ class ConverterPrefs(context: Context) {
             .apply()
     }
 
+    fun getSmartMediaPlaybackUseSymbolsInPlayer(): Boolean {
+        return prefs.getBoolean(KEY_SMART_MEDIA_PLAYBACK_USE_SYMBOLS_IN_PLAYER, false)
+    }
+
+    fun setSmartMediaPlaybackUseSymbolsInPlayer(value: Boolean) {
+        prefs.edit()
+            .putBoolean(KEY_SMART_MEDIA_PLAYBACK_USE_SYMBOLS_IN_PLAYER, value)
+            .apply()
+    }
+
     fun getSmartNavigationEnabled(): Boolean {
         return prefs.getBoolean(KEY_SMART_NAVIGATION_ENABLED, true)
     }
@@ -802,6 +812,8 @@ class ConverterPrefs(context: Context) {
         private const val KEY_SMART_MEDIA_PLAYBACK_ENABLED = "smart_media_playback_enabled"
         private const val KEY_SMART_MEDIA_PLAYBACK_SHOW_ON_LOCK_SCREEN =
             "smart_media_playback_show_on_lock_screen"
+        private const val KEY_SMART_MEDIA_PLAYBACK_USE_SYMBOLS_IN_PLAYER =
+            "smart_media_playback_use_symbols_in_player"
         private const val KEY_SMART_NAVIGATION_ENABLED = "smart_navigation_enabled"
         private const val KEY_SMART_WEATHER_ENABLED = "smart_weather_enabled"
         private const val KEY_SMART_EXTERNAL_DEVICES_ENABLED = "smart_external_devices_enabled"

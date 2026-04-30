@@ -20,17 +20,29 @@ class NetworkSpeedNotificationBuilder(
         }
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (manager.getNotificationChannel(CHANNEL_ID) != null) {
+        val text = localizedText()
+        val existing = manager.getNotificationChannel(CHANNEL_ID)
+        if (existing != null) {
+            val shouldUpdate =
+                existing.name?.toString() != text.channelName ||
+                    existing.description != text.channelDescription
+            if (!shouldUpdate) {
+                return
+            }
+
+            existing.name = text.channelName
+            existing.description = text.channelDescription
+            manager.createNotificationChannel(existing)
             return
         }
 
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                localizedText().channelName,
+                text.channelName,
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = localizedText().channelDescription
+                description = text.channelDescription
                 setShowBadge(false)
                 setSound(null, null)
                 lockscreenVisibility = Notification.VISIBILITY_SECRET
@@ -89,13 +101,13 @@ class NetworkSpeedNotificationBuilder(
         return if (isRussianLocale()) {
             LocalizedText(
                 notificationTitle = "Скорость сети",
-                channelName = "Скорость сети",
+                channelName = "Монитор скорости сети",
                 channelDescription = "Показывает текущую скорость сети в статус-баре"
             )
         } else {
             LocalizedText(
                 notificationTitle = "Network speed",
-                channelName = "Network speed",
+                channelName = "Network speed monitor",
                 channelDescription = "Shows current network speed in the status bar"
             )
         }

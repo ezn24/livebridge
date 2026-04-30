@@ -96,6 +96,13 @@ class LiveBridgePlatform {
       _askBool('setConversionLogMaxBytes', {'value': value});
   static Future<String> getConversionLogEntries() =>
       _askStr('getConversionLogEntries');
+  static Future<String> getConversionLogEntriesPage({
+    required int offset,
+    required int limit,
+  }) => _askStr('getConversionLogEntriesPage', {
+    'offset': offset,
+    'limit': limit,
+  });
   static Future<bool> getNetworkSpeedEnabled() =>
       _askBool('getNetworkSpeedEnabled');
   static Future<bool> setNetworkSpeedEnabled(bool value) =>
@@ -209,6 +216,10 @@ class LiveBridgePlatform {
       _askBool('getSmartMediaPlaybackShowOnLockScreen');
   static Future<bool> setSmartMediaPlaybackShowOnLockScreen(bool value) =>
       _askBool('setSmartMediaPlaybackShowOnLockScreen', {'value': value});
+  static Future<bool> getSmartMediaPlaybackUseSymbolsInPlayer() =>
+      _askBool('getSmartMediaPlaybackUseSymbolsInPlayer');
+  static Future<bool> setSmartMediaPlaybackUseSymbolsInPlayer(bool value) =>
+      _askBool('setSmartMediaPlaybackUseSymbolsInPlayer', {'value': value});
   static Future<bool> getSmartNavigationEnabled() =>
       _askBool('getSmartNavigationEnabled');
   static Future<bool> setSmartNavigationEnabled(bool value) =>

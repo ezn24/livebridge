@@ -37,6 +37,7 @@ import 'settings_report_bug_screen.dart';
 import 'settings_brand_specific_screen.dart';
 import 'settings_experimental_screen.dart';
 import 'settings_permissions_screen.dart';
+import 'settings_support_screen.dart';
 import 'settings_update_screen.dart';
 
 class HomeRedesignScreen extends StatefulWidget {
@@ -62,14 +63,20 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
   int? _navMotionTargetIndex;
   int? _programmaticTargetIndex;
   List<ConversionLogEntry> _conversionLogEntries = const <ConversionLogEntry>[];
+  bool _isConversionLogLoading = false;
+  bool _hasMoreConversionLogEntries = false;
+  int _conversionLogLoadGeneration = 0;
   Map<String, InstalledApp> _installedAppsByPackage =
       const <String, InstalledApp>{};
+  late final ScrollController _homeScrollController;
   late final PageController _pageController;
   late final AnimationController _navMotionController;
   late final AnimationController _masterToggleWobbleController;
   late final Animation<double> _masterToggleWobbleOffset;
 
   static const int _navItemsCount = 3;
+  static const int _conversionLogPageSize = 10;
+  static const double _conversionLogLoadMoreExtent = 420;
 
   List<LbBottomNavData> _buildNavItems(AppStrings strings) {
     return <LbBottomNavData>[
@@ -97,6 +104,7 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
   @override
   void initState() {
     super.initState();
+    _homeScrollController = ScrollController()..addListener(_handleHomeScroll);
     _pageController = PageController(initialPage: _currentTabIndex);
     _navMotionController =
         AnimationController(
@@ -141,6 +149,9 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
 
   @override
   void dispose() {
+    _homeScrollController
+      ..removeListener(_handleHomeScroll)
+      ..dispose();
     _pageController.dispose();
     _navMotionController.dispose();
     _masterToggleWobbleController.dispose();
@@ -164,6 +175,9 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
     if (baseIndex == index) {
       return;
     }
+    if (baseIndex == 0 && index != 0) {
+      _collapseHomeConversionLog();
+    }
     _programmaticTargetIndex = index;
     _playNavMotion(index);
     unawaited(LiveBridgeHaptics.selection());
@@ -173,6 +187,41 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
       curve: Curves.easeOutCubic,
     );
     _programmaticTargetIndex = null;
+  }
+
+  void _handleHomeScroll() {
+    if (_currentTabIndex != 0 ||
+        !_homeScrollController.hasClients ||
+        !_isConversionLogEnabled ||
+        !_hasMoreConversionLogEntries ||
+        _isConversionLogLoading) {
+      return;
+    }
+
+    final ScrollPosition position = _homeScrollController.position;
+    if (position.extentAfter <= _conversionLogLoadMoreExtent) {
+      unawaited(_loadMoreConversionLogEntries());
+    }
+  }
+
+  void _collapseHomeConversionLog() {
+    if (_homeScrollController.hasClients) {
+      _homeScrollController.jumpTo(0);
+    }
+
+    if (_conversionLogEntries.length <= _conversionLogPageSize &&
+        !_hasMoreConversionLogEntries) {
+      return;
+    }
+
+    setState(() {
+      _conversionLogEntries = _conversionLogEntries
+          .take(_conversionLogPageSize)
+          .toList(growable: false);
+      _hasMoreConversionLogEntries = _isConversionLogEnabled;
+      _isConversionLogLoading = false;
+      _conversionLogLoadGeneration += 1;
+    });
   }
 
   Future<void> _pushRulesDetailScreen(Widget screen) async {
@@ -350,20 +399,83 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
         setState(() {
           _isConversionLogEnabled = false;
           _conversionLogEntries = const <ConversionLogEntry>[];
+          _hasMoreConversionLogEntries = false;
+          _isConversionLogLoading = false;
+          _conversionLogLoadGeneration += 1;
         });
         return;
       }
 
-      final String rawEntries =
-          await LiveBridgePlatform.getConversionLogEntries();
       if (!mounted) {
         return;
       }
+      final int generation = _conversionLogLoadGeneration + 1;
       setState(() {
         _isConversionLogEnabled = true;
-        _conversionLogEntries = ConversionLogEntry.decodeList(rawEntries);
+        _conversionLogEntries = const <ConversionLogEntry>[];
+        _hasMoreConversionLogEntries = false;
+        _isConversionLogLoading = true;
+        _conversionLogLoadGeneration = generation;
       });
+      await _loadConversionLogPage(
+        offset: 0,
+        generation: generation,
+        replaceEntries: true,
+      );
     } catch (_) {}
+  }
+
+  Future<void> _loadMoreConversionLogEntries() async {
+    if (_isConversionLogLoading ||
+        !_isConversionLogEnabled ||
+        !_hasMoreConversionLogEntries) {
+      return;
+    }
+
+    await _loadConversionLogPage(
+      offset: _conversionLogEntries.length,
+      generation: _conversionLogLoadGeneration,
+      replaceEntries: false,
+    );
+  }
+
+  Future<void> _loadConversionLogPage({
+    required int offset,
+    required int generation,
+    required bool replaceEntries,
+  }) async {
+    if (!mounted || generation != _conversionLogLoadGeneration) {
+      return;
+    }
+
+    setState(() => _isConversionLogLoading = true);
+
+    try {
+      final String rawPage =
+          await LiveBridgePlatform.getConversionLogEntriesPage(
+            offset: offset,
+            limit: _conversionLogPageSize,
+          );
+      final ConversionLogPage page = ConversionLogPage.decode(rawPage);
+
+      if (!mounted || generation != _conversionLogLoadGeneration) {
+        return;
+      }
+
+      setState(() {
+        _isConversionLogEnabled = true;
+        _conversionLogEntries = replaceEntries
+            ? page.entries
+            : <ConversionLogEntry>[..._conversionLogEntries, ...page.entries];
+        _hasMoreConversionLogEntries = page.hasMore;
+        _isConversionLogLoading = false;
+      });
+    } catch (_) {
+      if (!mounted || generation != _conversionLogLoadGeneration) {
+        return;
+      }
+      setState(() => _isConversionLogLoading = false);
+    }
   }
 
   Future<void> _setConverterEnabled(bool value) async {
@@ -458,6 +570,10 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
 
   Future<void> _openReportBugScreen() {
     return _pushRulesDetailScreen(const SettingsReportBugScreen());
+  }
+
+  Future<void> _openSupportScreen() {
+    return _pushRulesDetailScreen(const SettingsSupportScreen());
   }
 
   Future<void> _openUpdateSettingsScreen() {
@@ -586,10 +702,12 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
     required String title,
     required List<Widget> children,
     bool showOverflow = true,
+    ScrollController? scrollController,
   }) {
     return RepaintBoundary(
       child: SingleChildScrollView(
         key: ValueKey<String>(title),
+        controller: scrollController,
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
           LbSpacing.screenHorizontal,
@@ -644,6 +762,7 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
       palette: palette,
       title: strings.heroTitle,
       showOverflow: false,
+      scrollController: _homeScrollController,
       children: <Widget>[
         AnimatedBuilder(
           animation: _masterToggleWobbleController,
@@ -721,7 +840,7 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
             style: LbTextStyles.title.copyWith(color: palette.textSecondary),
           ),
           const SizedBox(height: LbSpacing.recentSectionGap),
-          if (_conversionLogEntries.isEmpty)
+          if (_conversionLogEntries.isEmpty && !_isConversionLogLoading)
             SizedBox(
               width: double.infinity,
               height: LbSpacing.recentEmptyStateHeight,
@@ -734,13 +853,16 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
                 ),
               ),
             )
-          else
+          else if (_conversionLogEntries.isNotEmpty) ...<Widget>[
             LbListComponent(
               items: _buildConversionLogItems(),
               rowHeight: LbSpacing.recentRowHeight,
               leadingSize: LbSpacing.recentAvatarSize,
               leadingGap: LbSpacing.recentAvatarGap,
             ),
+            if (_isConversionLogLoading)
+              const SizedBox(height: LbSpacing.recentSectionGap),
+          ],
         ] else ...<Widget>[
           LbRecentEmptyState(
             title: strings.conversionLogDisabled,
@@ -885,6 +1007,13 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
         },
       ),
       LbListItemData(
+        title: strings.supportLiveBridgeTitle,
+        onTap: () {
+          unawaited(LiveBridgeHaptics.selection());
+          unawaited(_openSupportScreen());
+        },
+      ),
+      LbListItemData(
         title: strings.reportBug,
         onTap: () {
           unawaited(LiveBridgeHaptics.selection());
@@ -958,6 +1087,9 @@ class _HomeRedesignScreenState extends State<HomeRedesignScreen>
               allowImplicitScrolling: true,
               physics: const BouncingScrollPhysics(),
               onPageChanged: (int index) {
+                if (_currentTabIndex == 0 && index != 0) {
+                  _collapseHomeConversionLog();
+                }
                 if (_programmaticTargetIndex == null &&
                     !_isDraggingNavSelector) {
                   _playNavMotion(index);

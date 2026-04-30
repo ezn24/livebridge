@@ -64,8 +64,14 @@ object LiveUpdateNotifier {
         setOf(RegexOption.IGNORE_CASE)
     )
     private val mediaProgressOnlyPattern = Regex("""^\d{1,3}\s*%$""")
-    private val weatherCelsiusPattern = Regex("""(?:°\s*[cс]|℃)""", setOf(RegexOption.IGNORE_CASE))
-    private val weatherFahrenheitPattern = Regex("""(?:°\s*[fф]|℉)""", setOf(RegexOption.IGNORE_CASE))
+    private val weatherCelsiusPattern =
+        Regex("""(?:°\s*[cс](?!\p{L})|℃)""", setOf(RegexOption.IGNORE_CASE))
+    private val weatherFahrenheitPattern =
+        Regex("""(?:°\s*[fф](?!\p{L})|℉)""", setOf(RegexOption.IGNORE_CASE))
+    private const val MEDIA_SYMBOL_PLAY = "\u25B6\uFE0E"
+    private const val MEDIA_SYMBOL_PAUSE = "\u2016\uFE0E"
+    private const val MEDIA_SYMBOL_PREVIOUS = "\u23EE\uFE0E"
+    private const val MEDIA_SYMBOL_NEXT = "\u23ED\uFE0E"
     private val transparentActionIcon by lazy {
         IconCompat.createWithBitmap(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     }
@@ -92,26 +98,52 @@ object LiveUpdateNotifier {
         }
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val current = manager.getNotificationChannel(CHANNEL_ID)
-
-        if (current == null) {
-            manager.createNotificationChannel(createChannel())
-            return
-        }
-
-        if (current.lockscreenVisibility != Notification.VISIBILITY_PUBLIC) {
-            current.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            manager.createNotificationChannel(current)
+        MirrorNotificationChannel.entries.forEach { channel ->
+            ensureMirrorChannel(
+                manager = manager,
+                context = context,
+                channel = channel
+            )
         }
     }
 
-    private fun createChannel(): NotificationChannel {
+    private fun ensureMirrorChannel(
+        manager: NotificationManager,
+        context: Context,
+        channel: MirrorNotificationChannel
+    ) {
+        val current = manager.getNotificationChannel(channel.id)
+        if (current == null) {
+            manager.createNotificationChannel(createChannel(context, channel))
+            return
+        }
+
+        val channelText = mirrorChannelText(context, channel)
+        val shouldUpdate =
+            current.name?.toString() != channelText.name ||
+                    current.description != channelText.description ||
+                    current.lockscreenVisibility != Notification.VISIBILITY_PUBLIC
+        if (!shouldUpdate) {
+            return
+        }
+
+        current.name = channelText.name
+        current.description = channelText.description
+        current.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        manager.createNotificationChannel(current)
+    }
+
+    private fun createChannel(
+        context: Context,
+        channel: MirrorNotificationChannel
+    ): NotificationChannel {
+        val channelText = mirrorChannelText(context, channel)
         return NotificationChannel(
-            CHANNEL_ID,
-            CHANNEL_NAME,
+            channel.id,
+            channelText.name,
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Converted promoted ongoing notifications"
+            description = channelText.description
             enableVibration(false)
             setSound(null, null)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -190,6 +222,7 @@ object LiveUpdateNotifier {
                     context = context,
                     sbn = sbn,
                     appPresentationOverride = appPresentationOverride,
+                    mirrorChannel = MirrorNotificationChannel.BYPASS,
                     progressOverride = null,
                     otpOverride = null,
                     smartShortTextOverride = null,
@@ -204,6 +237,7 @@ object LiveUpdateNotifier {
                     promotedNotification = notification,
                     sbn = sbn,
                     appPresentationOverride = appPresentationOverride,
+                    mirrorChannel = MirrorNotificationChannel.BYPASS,
                     progressOverride = null,
                     otpOverride = null,
                     smartShortTextOverride = null,
@@ -331,6 +365,7 @@ object LiveUpdateNotifier {
                         context = context,
                         sbn = sbn,
                         appPresentationOverride = appPresentationOverride,
+                        mirrorChannel = MirrorNotificationChannel.MEDIA_PLAYBACK,
                         progressOverride = mediaProgressOverride,
                         otpOverride = null,
                         smartShortTextOverride = mediaShortText,
@@ -350,6 +385,7 @@ object LiveUpdateNotifier {
                         promotedNotification = notification,
                         sbn = sbn,
                         appPresentationOverride = appPresentationOverride,
+                        mirrorChannel = MirrorNotificationChannel.MEDIA_PLAYBACK,
                         progressOverride = mediaProgressOverride,
                         otpOverride = null,
                         smartShortTextOverride = mediaShortText,
@@ -411,7 +447,7 @@ object LiveUpdateNotifier {
                             }
                             val shouldAutoCopy =
                                 prefs.getOtpAutoCopyEnabled() &&
-                                        shouldAutoCopyOtpLocked(state, otpMatch.code, now)
+                                        shouldAutoCopyOtpLocked(state, otpMatch.code)
                             OtpRouteState(
                                 staleAggregateIds = staleAggregateIds,
                                 shouldPublish = shouldPublish,
@@ -427,6 +463,7 @@ object LiveUpdateNotifier {
                             context = context,
                             sbn = sbn,
                             appPresentationOverride = appPresentationOverride,
+                            mirrorChannel = MirrorNotificationChannel.OTP_CODES,
                             progressOverride = null,
                             otpOverride = otpMatch,
                             smartShortTextOverride = null,
@@ -440,6 +477,7 @@ object LiveUpdateNotifier {
                             promotedNotification = notification,
                             sbn = sbn,
                             appPresentationOverride = appPresentationOverride,
+                            mirrorChannel = MirrorNotificationChannel.OTP_CODES,
                             progressOverride = null,
                             otpOverride = otpMatch,
                             smartShortTextOverride = null
@@ -474,6 +512,7 @@ object LiveUpdateNotifier {
                         context = context,
                         sbn = sbn,
                         appPresentationOverride = appPresentationOverride,
+                        mirrorChannel = MirrorNotificationChannel.PROGRESS_NOTIFICATIONS,
                         progressOverride = ProgressOverride(
                             value = textProgressMatch.percent,
                             max = 100
@@ -490,6 +529,7 @@ object LiveUpdateNotifier {
                         promotedNotification = notification,
                         sbn = sbn,
                         appPresentationOverride = appPresentationOverride,
+                        mirrorChannel = MirrorNotificationChannel.PROGRESS_NOTIFICATIONS,
                         progressOverride = ProgressOverride(
                             value = textProgressMatch.percent,
                             max = 100
@@ -548,6 +588,7 @@ object LiveUpdateNotifier {
                     val sourceSbn = routeState.sourceSbn
                     val sourceNotification = sourceSbn.notification
                     val smartRuleId = smartRuleIdFromAggregateKey(smartMatch.aggregateKey)
+                    val mirrorChannel = mirrorChannelForSmartRule(smartRuleId)
                     val dedupKind = if (isNotificationDedupEligibleSmartRule(smartRuleId)) {
                         MirrorDedupKind.STATUS
                     } else {
@@ -607,6 +648,7 @@ object LiveUpdateNotifier {
                         context = context,
                         sbn = sourceSbn,
                         appPresentationOverride = appPresentationOverride,
+                        mirrorChannel = mirrorChannel,
                         progressOverride = smartProgressOverride,
                         otpOverride = null,
                         smartShortTextOverride = smartStatusText,
@@ -621,6 +663,7 @@ object LiveUpdateNotifier {
                         promotedNotification = notification,
                         sbn = sourceSbn,
                         appPresentationOverride = appPresentationOverride,
+                        mirrorChannel = mirrorChannel,
                         progressOverride = smartProgressOverride,
                         otpOverride = null,
                         smartShortTextOverride = smartStatusText,
@@ -641,6 +684,7 @@ object LiveUpdateNotifier {
                             aggregateKey = smartMatch.aggregateKey,
                             sbn = sourceSbn,
                             appPresentationOverride = appPresentationOverride,
+                            mirrorChannel = mirrorChannel,
                             progressOverride = smartProgressOverride,
                             smartRuleId = smartRuleId,
                             tokens = animatedTokens,
@@ -656,10 +700,16 @@ object LiveUpdateNotifier {
                     }
                     staleAggregateIds.forEach { cancelMirroredNotification(manager, it) }
 
+                    val mirrorChannel = if (hasNativeProgress) {
+                        MirrorNotificationChannel.PROGRESS_NOTIFICATIONS
+                    } else {
+                        MirrorNotificationChannel.BYPASS
+                    }
                     val notification = buildMirroredNotification(
                         context = context,
                         sbn = sbn,
                         appPresentationOverride = appPresentationOverride,
+                        mirrorChannel = mirrorChannel,
                         progressOverride = null,
                         otpOverride = null,
                         smartShortTextOverride = null,
@@ -673,6 +723,7 @@ object LiveUpdateNotifier {
                         promotedNotification = notification,
                         sbn = sbn,
                         appPresentationOverride = appPresentationOverride,
+                        mirrorChannel = mirrorChannel,
                         progressOverride = null,
                         otpOverride = null,
                         smartShortTextOverride = null
@@ -723,7 +774,7 @@ object LiveUpdateNotifier {
 
     fun handleMirroredRemoved(context: Context, sbn: StatusBarNotification) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            sbn.notification.channelId != CHANNEL_ID
+            !isMirrorNotificationChannel(sbn.notification.channelId)
         ) {
             return
         }
@@ -757,6 +808,140 @@ object LiveUpdateNotifier {
         )
     }
 
+    private fun isMirrorNotificationChannel(channelId: String?): Boolean {
+        val normalized = channelId?.trim().orEmpty()
+        return normalized.isNotEmpty() &&
+                MirrorNotificationChannel.entries.any { it.id == normalized }
+    }
+
+    private fun mirrorChannelForSmartRule(ruleId: String?): MirrorNotificationChannel {
+        return when (ruleId) {
+            "vpn", "external_device" -> MirrorNotificationChannel.NETWORK_CONNECTIONS
+            "navigation", "weather" -> MirrorNotificationChannel.MISCELLANEOUS
+            else -> MirrorNotificationChannel.SMART_CONVERSIONS
+        }
+    }
+
+    private fun mirrorChannelText(
+        context: Context,
+        channel: MirrorNotificationChannel
+    ): MirrorChannelText {
+        val isRussian = isRussianLocale(context)
+        return when (channel) {
+            MirrorNotificationChannel.LEGACY -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "LiveBridge",
+                        description = "Старый общий канал конвертированных уведомлений"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = CHANNEL_NAME,
+                        description = "Legacy channel for converted notifications"
+                    )
+                }
+            }
+
+            MirrorNotificationChannel.PROGRESS_NOTIFICATIONS -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "Progress notifications",
+                        description = "Конвертированные уведомления с прогрессом"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = "Progress notifications",
+                        description = "Converted notifications with progress"
+                    )
+                }
+            }
+
+            MirrorNotificationChannel.OTP_CODES -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "OTP codes",
+                        description = "Коды подтверждения и действия с ними"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = "OTP codes",
+                        description = "Verification code conversions"
+                    )
+                }
+            }
+
+            MirrorNotificationChannel.SMART_CONVERSIONS -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "Smart conversions",
+                        description = "Такси, доставки и похожие smart-конверсии"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = "Smart conversions",
+                        description = "Taxi, deliveries and similar smart conversions"
+                    )
+                }
+            }
+
+            MirrorNotificationChannel.MEDIA_PLAYBACK -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "Media playback",
+                        description = "Конвертированный медиаплеер"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = "Media playback",
+                        description = "Converted media playback notifications"
+                    )
+                }
+            }
+
+            MirrorNotificationChannel.NETWORK_CONNECTIONS -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "Network & connections",
+                        description = "VPN и внешние устройства"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = "Network & connections",
+                        description = "VPN and external device conversions"
+                    )
+                }
+            }
+
+            MirrorNotificationChannel.MISCELLANEOUS -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "Miscellaneous conversions",
+                        description = "Навигация, погода и прочие конверсии"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = "Miscellaneous conversions",
+                        description = "Navigation, weather and other conversions"
+                    )
+                }
+            }
+
+            MirrorNotificationChannel.BYPASS -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "Bypass applications",
+                        description = "Уведомления приложений из bypass-списка"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = "Bypass applications",
+                        description = "Notifications from bypassed apps"
+                    )
+                }
+            }
+        }
+    }
+
     private fun passesBaseFilters(
         prefs: ConverterPrefs,
         sbn: StatusBarNotification,
@@ -788,7 +973,9 @@ object LiveUpdateNotifier {
             return false
         }
         val source = sbn.notification
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && source.channelId == CHANNEL_ID) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            isMirrorNotificationChannel(source.channelId)
+        ) {
             return false
         }
         if (Build.VERSION.SDK_INT >= 36 && source.flags and 0x40000 != 0) {
@@ -858,8 +1045,8 @@ object LiveUpdateNotifier {
                 .lowercase(Locale.ROOT)
                 .replace(Regex("\\s+"), " ")
             normalizedPlaceholder.isNotBlank() &&
-                (normalized == normalizedPlaceholder ||
-                    normalized.contains(normalizedPlaceholder))
+                    (normalized == normalizedPlaceholder ||
+                            normalized.contains(normalizedPlaceholder))
         }
     }
 
@@ -867,6 +1054,7 @@ object LiveUpdateNotifier {
         context: Context,
         sbn: StatusBarNotification,
         appPresentationOverride: AppPresentationOverride,
+        mirrorChannel: MirrorNotificationChannel,
         progressOverride: ProgressOverride?,
         otpOverride: OtpMatch?,
         smartShortTextOverride: String?,
@@ -960,6 +1148,8 @@ object LiveUpdateNotifier {
         } else {
             NotificationCompat.VISIBILITY_PUBLIC
         }
+        val useMediaActionSymbols = preferMediaControls &&
+                runtimePrefs.getSmartMediaPlaybackUseSymbolsInPlayer()
         val aospCuttingEnabled = runtimePrefs.getAospCuttingEnabled()
         val aospCuttingLength = runtimePrefs.getAospCuttingLength()
         val hyperBridgeEnabled = runtimePrefs.getHyperBridgeEnabled()
@@ -983,7 +1173,7 @@ object LiveUpdateNotifier {
             null
         }
 
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, mirrorChannel.id)
             .setContentTitle(displayTitle)
             .setContentText(displayText)
             .setSubText(appName)
@@ -1002,6 +1192,7 @@ object LiveUpdateNotifier {
         val preferredSmallIcon = when (appPresentationOverride.iconSource) {
             NotificationIconSource.NOTIFICATION ->
                 navigationDrawable?.icon ?: sourceSmallIcon ?: appSmallIcon
+
             NotificationIconSource.APP ->
                 if (isTwoGisPackage) {
                     navigationDrawable?.icon ?: appSmallIcon ?: sourceSmallIcon
@@ -1024,9 +1215,14 @@ object LiveUpdateNotifier {
         copySourceActions(
             source = source,
             builder = builder,
-            maxActions = if (otpOverride != null) MAX_MIRRORED_ACTIONS - 1 else MAX_MIRRORED_ACTIONS,
+            maxActions = if (otpOverride != null) {
+                MAX_MIRRORED_ACTIONS - 1
+            } else {
+                MAX_MIRRORED_ACTIONS
+            },
             preferMediaControls = preferMediaControls,
-            mediaPlaybackIsPlaying = mediaPlaybackIsPlaying
+            mediaPlaybackIsPlaying = mediaPlaybackIsPlaying,
+            useMediaActionSymbols = useMediaActionSymbols
         )
 
         if (hasProgress) {
@@ -1129,6 +1325,7 @@ object LiveUpdateNotifier {
         promotedNotification: Notification,
         sbn: StatusBarNotification,
         appPresentationOverride: AppPresentationOverride,
+        mirrorChannel: MirrorNotificationChannel,
         progressOverride: ProgressOverride?,
         otpOverride: OtpMatch?,
         smartShortTextOverride: String?,
@@ -1153,6 +1350,7 @@ object LiveUpdateNotifier {
                 context = context,
                 sbn = sbn,
                 appPresentationOverride = appPresentationOverride,
+                mirrorChannel = mirrorChannel,
                 progressOverride = progressOverride,
                 otpOverride = otpOverride,
                 smartShortTextOverride = smartShortTextOverride,
@@ -2032,17 +2230,10 @@ object LiveUpdateNotifier {
 
     private fun shouldAutoCopyOtpLocked(
         state: OtpAggregateState,
-        code: String,
-        nowMs: Long
+        code: String
     ): Boolean {
         if (state.lastAutoCopiedCode != code) {
             state.lastAutoCopiedCode = code
-            state.lastAutoCopiedAtMs = nowMs
-            return true
-        }
-
-        if (nowMs - state.lastAutoCopiedAtMs >= OTP_REPEAT_SUPPRESS_MS) {
-            state.lastAutoCopiedAtMs = nowMs
             return true
         }
 
@@ -2115,6 +2306,7 @@ object LiveUpdateNotifier {
                     context = context,
                     sbn = sbn,
                     appPresentationOverride = appPresentationOverride,
+                    mirrorChannel = MirrorNotificationChannel.OTP_CODES,
                     progressOverride = null,
                     otpOverride = otpMatch,
                     smartShortTextOverride = null,
@@ -2129,6 +2321,7 @@ object LiveUpdateNotifier {
                     promotedNotification = notification,
                     sbn = sbn,
                     appPresentationOverride = appPresentationOverride,
+                    mirrorChannel = MirrorNotificationChannel.OTP_CODES,
                     progressOverride = null,
                     otpOverride = otpMatch,
                     smartShortTextOverride = null,
@@ -2196,6 +2389,7 @@ object LiveUpdateNotifier {
         aggregateKey: String,
         sbn: StatusBarNotification,
         appPresentationOverride: AppPresentationOverride,
+        mirrorChannel: MirrorNotificationChannel,
         progressOverride: ProgressOverride?,
         smartRuleId: String,
         tokens: List<String?>,
@@ -2229,6 +2423,7 @@ object LiveUpdateNotifier {
             if (existingState != null && smartAnimationGenerations.containsKey(aggregateKey)) {
                 existingState.sbn = sbn
                 existingState.appPresentationOverride = appPresentationOverride
+                existingState.mirrorChannel = mirrorChannel
                 existingState.progressOverride = progressOverride
                 existingState.smartRuleId = smartRuleId
                 existingState.tokens = normalizedTokens
@@ -2246,6 +2441,7 @@ object LiveUpdateNotifier {
             smartAnimationStates[aggregateKey] = SmartAnimationState(
                 sbn = sbn,
                 appPresentationOverride = appPresentationOverride,
+                mirrorChannel = mirrorChannel,
                 progressOverride = progressOverride,
                 smartRuleId = smartRuleId,
                 tokens = normalizedTokens,
@@ -2293,6 +2489,7 @@ object LiveUpdateNotifier {
                 SmartAnimationFrame(
                     sbn = animationState.sbn,
                     appPresentationOverride = animationState.appPresentationOverride,
+                    mirrorChannel = animationState.mirrorChannel,
                     progressOverride = animationState.progressOverride,
                     smartRuleId = animationState.smartRuleId,
                     token = nextToken.token
@@ -2304,6 +2501,7 @@ object LiveUpdateNotifier {
                     context = context,
                     sbn = frame.sbn,
                     appPresentationOverride = frame.appPresentationOverride,
+                    mirrorChannel = frame.mirrorChannel,
                     progressOverride = frame.progressOverride,
                     otpOverride = null,
                     smartShortTextOverride = frame.token,
@@ -2318,6 +2516,7 @@ object LiveUpdateNotifier {
                     promotedNotification = notification,
                     sbn = frame.sbn,
                     appPresentationOverride = frame.appPresentationOverride,
+                    mirrorChannel = frame.mirrorChannel,
                     progressOverride = frame.progressOverride,
                     otpOverride = null,
                     smartShortTextOverride = frame.token,
@@ -2844,7 +3043,8 @@ object LiveUpdateNotifier {
         builder: NotificationCompat.Builder,
         maxActions: Int,
         preferMediaControls: Boolean = false,
-        mediaPlaybackIsPlaying: Boolean? = null
+        mediaPlaybackIsPlaying: Boolean? = null,
+        useMediaActionSymbols: Boolean = false
     ) {
         val actions = source.actions ?: return
         if (actions.isEmpty()) {
@@ -2859,7 +3059,8 @@ object LiveUpdateNotifier {
         if (preferMediaControls) {
             val preferredMediaActions = selectPreferredMediaActions(
                 actions = actions.toList(),
-                isPlaying = mediaPlaybackIsPlaying
+                isPlaying = mediaPlaybackIsPlaying,
+                useSymbols = useMediaActionSymbols
             )
             if (preferredMediaActions.isNotEmpty()) {
                 preferredMediaActions
@@ -2883,7 +3084,8 @@ object LiveUpdateNotifier {
 
     private fun selectPreferredMediaActions(
         actions: List<Notification.Action>,
-        isPlaying: Boolean?
+        isPlaying: Boolean?,
+        useSymbols: Boolean
     ): List<MediaPreferredAction> {
         if (actions.isEmpty()) {
             return emptyList()
@@ -2929,22 +3131,32 @@ object LiveUpdateNotifier {
             null -> pauseAction ?: playAction
         }
 
+        fun actionTitle(text: String, symbol: String): String {
+            return if (useSymbols) symbol else text
+        }
+
         val centerShortTitle = when {
-            centerAction != null && centerAction == playAction -> "Play"
-            centerAction != null && centerAction == pauseAction -> "Pause"
-            isPlaying == false -> "Play"
-            else -> "Pause"
+            centerAction != null && centerAction == playAction ->
+                actionTitle("Play", MEDIA_SYMBOL_PLAY)
+
+            centerAction != null && centerAction == pauseAction ->
+                actionTitle("Pause", MEDIA_SYMBOL_PAUSE)
+
+            isPlaying == false -> actionTitle("Play", MEDIA_SYMBOL_PLAY)
+            else -> actionTitle("Pause", MEDIA_SYMBOL_PAUSE)
         }
 
         val ordered = listOfNotNull(
-            previousAction?.let { MediaPreferredAction(it, "Previous") },
+            previousAction?.let {
+                MediaPreferredAction(it, actionTitle("Previous", MEDIA_SYMBOL_PREVIOUS))
+            },
             centerAction?.let {
                 MediaPreferredAction(
                     action = it,
                     shortTitle = centerShortTitle
                 )
             },
-            nextAction?.let { MediaPreferredAction(it, "Next") }
+            nextAction?.let { MediaPreferredAction(it, actionTitle("Next", MEDIA_SYMBOL_NEXT)) }
         )
         return if (ordered.size >= 2) ordered else emptyList()
     }
@@ -3618,8 +3830,7 @@ object LiveUpdateNotifier {
     private data class OtpAggregateState(
         val activeSbnKeys: MutableSet<String> = mutableSetOf(),
         var lastRenderedAtMs: Long = 0L,
-        var lastAutoCopiedCode: String = "",
-        var lastAutoCopiedAtMs: Long = 0L
+        var lastAutoCopiedCode: String = ""
     )
 
     private data class OtpSourceState(
@@ -3659,6 +3870,22 @@ object LiveUpdateNotifier {
         STATUS
     }
 
+    private enum class MirrorNotificationChannel(val id: String) {
+        LEGACY("livebridge_promoted_updates"),
+        PROGRESS_NOTIFICATIONS("livebridge_progress_notifications"),
+        OTP_CODES("livebridge_otp_codes"),
+        SMART_CONVERSIONS("livebridge_smart_conversions"),
+        MEDIA_PLAYBACK("livebridge_media_playback"),
+        NETWORK_CONNECTIONS("livebridge_network_connections"),
+        MISCELLANEOUS("livebridge_miscellaneous_conversions"),
+        BYPASS("livebridge_bypass_applications")
+    }
+
+    private data class MirrorChannelText(
+        val name: String,
+        val description: String
+    )
+
     private data class SmartStageMatch(
         val aggregateKey: String,
         val stageValue: Int,
@@ -3675,6 +3902,7 @@ object LiveUpdateNotifier {
     private data class SmartAnimationState(
         var sbn: StatusBarNotification,
         var appPresentationOverride: AppPresentationOverride,
+        var mirrorChannel: MirrorNotificationChannel,
         var progressOverride: ProgressOverride?,
         var smartRuleId: String,
         var tokens: List<String?>,
@@ -3685,6 +3913,7 @@ object LiveUpdateNotifier {
     private data class SmartAnimationFrame(
         val sbn: StatusBarNotification,
         val appPresentationOverride: AppPresentationOverride,
+        val mirrorChannel: MirrorNotificationChannel,
         val progressOverride: ProgressOverride?,
         val smartRuleId: String,
         val token: String

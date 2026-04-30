@@ -1041,7 +1041,7 @@
             </p>
             <div class="hero-cta">
               <a class="btn btn-filled" href="#download">Get the Latest Version</a>
-              <a class="btn btn-outlined" href="https://github.com/appsfolder/livebridge/releases/latest" target="_blank">View on GitHub</a>
+              <a class="btn btn-outlined" href="https://github.com/appsfolder/livebridge" target="_blank" rel="noreferrer">Star on GitHub</a>
               <a class="btn btn-outlined" href="https://t.me/livebridge_dev" target="_blank" rel="noreferrer">Discuss</a>
             </div>
             <section class="stats">
@@ -1321,6 +1321,17 @@
             </div>
           </div>
           <div class="faq-item" data-faq-item>
+            <button class="faq-trigger" type="button" aria-expanded="false" aria-controls="faq-support">
+              <span>How can I support the project?</span>
+              <span class="faq-chevron" aria-hidden="true"></span>
+            </button>
+            <div class="faq-panel" id="faq-support" data-faq-panel>
+              <div class="faq-panel-inner">
+                <p>LiveBridge stays open source and stable releases remain public. If you want to support development, early beta builds, and future apps from appsfolder, you can donate on <a href="https://boosty.to/appsfolder" target="_blank" rel="noreferrer">Boosty</a>.</p>
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-faq-item>
             <button class="faq-trigger" type="button" aria-expanded="false" aria-controls="faq-older-android">
               <span>Will this work on older Android versions?</span>
               <span class="faq-chevron" aria-hidden="true"></span>
@@ -1356,6 +1367,7 @@
       let releaseDataPollTimer = null;
       let releaseDataRequestInFlight = false;
       let releaseDataEtag = "";
+      let samsungDeviceDetectionPromise = null;
 
       const builds = [
         {
@@ -1571,17 +1583,70 @@
         return assets.find((asset) => assetMatches(asset.name, matchers));
       }
 
-      function looksLikeSamsungDevice() {
+      function looksLikeSamsungSignature(signature) {
+        return /Android/i.test(signature) &&
+          /SamsungBrowser|Samsung|SM-[A-Z0-9]+|GT-[A-Z0-9]+|SCH-[A-Z0-9]+|Galaxy/i.test(signature);
+      }
+
+      function getLowEntropyDeviceSignature() {
         const ua = navigator.userAgent || "";
         const platform = navigator.userAgentData?.platform || "";
         const vendor = navigator.vendor || "";
         const brands = Array.isArray(navigator.userAgentData?.brands)
           ? navigator.userAgentData.brands.map((item) => item.brand).join(" ")
           : "";
-        const signature = `${ua} ${platform} ${vendor} ${brands}`;
 
-        return /Android/i.test(signature) &&
-          /SamsungBrowser|Samsung|SM-[A-Z0-9]+|GT-[A-Z0-9]+|SCH-[A-Z0-9]+|Galaxy/i.test(signature);
+        return `${ua} ${platform} ${vendor} ${brands}`;
+      }
+
+      function looksLikeSamsungDevice() {
+        return looksLikeSamsungSignature(getLowEntropyDeviceSignature());
+      }
+
+      async function detectSamsungDevice() {
+        if (looksLikeSamsungDevice()) {
+          return true;
+        }
+
+        const getHighEntropyValues = navigator.userAgentData?.getHighEntropyValues;
+        if (typeof getHighEntropyValues !== "function") {
+          return false;
+        }
+
+        try {
+          const data = await getHighEntropyValues.call(navigator.userAgentData, [
+            "model",
+            "platform",
+            "platformVersion",
+            "fullVersionList",
+          ]);
+          const fullBrands = Array.isArray(data.fullVersionList)
+            ? data.fullVersionList.map((item) => item.brand).join(" ")
+            : "";
+          const signature = `${getLowEntropyDeviceSignature()} ${data.model || ""} ${data.platform || ""} ${data.platformVersion || ""} ${fullBrands}`;
+
+          return looksLikeSamsungSignature(signature);
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function getSamsungDeviceDetection() {
+        if (!samsungDeviceDetectionPromise) {
+          samsungDeviceDetectionPromise = detectSamsungDevice();
+        }
+
+        return samsungDeviceDetectionPromise;
+      }
+
+      async function applyRecommendedBuildForDevice(hasSamsungBuild) {
+        if (!hasSamsungBuild) {
+          applyRecommendedBuild(defaultRecommendedBuild);
+          return;
+        }
+
+        const isSamsungDevice = await getSamsungDeviceDetection();
+        applyRecommendedBuild(isSamsungDevice ? "samsung" : defaultRecommendedBuild);
       }
 
       function applyRecommendedBuild(buildKey) {
@@ -1824,10 +1889,7 @@
           }
 
           const hasSamsungBuild = Boolean(findBuildAsset(latest.assets || [], ["-samsung.apk"]));
-          const recommendedBuild = looksLikeSamsungDevice() && hasSamsungBuild
-            ? "samsung"
-            : defaultRecommendedBuild;
-          applyRecommendedBuild(recommendedBuild);
+          await applyRecommendedBuildForDevice(hasSamsungBuild);
 
           for (const build of builds) {
             const latestAsset = findBuildAsset(latest.assets || [], build.matchers);
@@ -1886,6 +1948,9 @@
       hydrateStaticIcons();
       initFaqAccordion();
       applyRecommendedBuild(looksLikeSamsungDevice() ? "samsung" : defaultRecommendedBuild);
+      getSamsungDeviceDetection().then((isSamsungDevice) => {
+        applyRecommendedBuild(isSamsungDevice ? "samsung" : defaultRecommendedBuild);
+      });
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
           scheduleReleaseDataRefresh(450);

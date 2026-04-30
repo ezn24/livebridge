@@ -21,6 +21,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
   bool _navigationEnabled = true;
   bool _mediaPlaybackEnabled = true;
   bool _showMediaOnLock = false;
+  bool _useSymbolsInMediaPlayer = false;
   bool _weatherEnabled = false;
 
   @override
@@ -39,12 +40,15 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
           LiveBridgePlatform.getSmartMediaPlaybackEnabled();
       final Future<bool> showMediaOnLockFuture =
           LiveBridgePlatform.getSmartMediaPlaybackShowOnLockScreen();
+      final Future<bool> useSymbolsInMediaPlayerFuture =
+          LiveBridgePlatform.getSmartMediaPlaybackUseSymbolsInPlayer();
       final Future<bool> weatherFuture =
           LiveBridgePlatform.getSmartWeatherEnabled();
 
       final bool navigationEnabled = await navigationFuture;
       final bool mediaPlaybackEnabled = await mediaPlaybackFuture;
       final bool showMediaOnLock = await showMediaOnLockFuture;
+      final bool useSymbolsInMediaPlayer = await useSymbolsInMediaPlayerFuture;
       final bool weatherEnabled = await weatherFuture;
 
       if (!mounted) {
@@ -55,6 +59,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
         _navigationEnabled = navigationEnabled;
         _mediaPlaybackEnabled = mediaPlaybackEnabled;
         _showMediaOnLock = showMediaOnLock;
+        _useSymbolsInMediaPlayer = useSymbolsInMediaPlayer;
         _weatherEnabled = weatherEnabled;
       });
     } catch (_) {}
@@ -84,6 +89,14 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
     await LiveBridgePlatform.setSmartMediaPlaybackShowOnLockScreen(value);
   }
 
+  Future<void> _setUseSymbolsInMediaPlayer(bool value) async {
+    if (!_mediaPlaybackEnabled || value == _useSymbolsInMediaPlayer) {
+      return;
+    }
+    setState(() => _useSymbolsInMediaPlayer = value);
+    await LiveBridgePlatform.setSmartMediaPlaybackUseSymbolsInPlayer(value);
+  }
+
   Future<void> _setWeatherEnabled(bool value) async {
     if (value == _weatherEnabled) {
       return;
@@ -95,20 +108,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
   @override
   Widget build(BuildContext context) {
     final AppStrings strings = AppStrings.of(context);
-    final List<LbListItemData> items = <LbListItemData>[
-      LbListItemData(
-        title: strings.navigationMapsTitle,
-        showChevron: false,
-        toggleValue: _navigationEnabled,
-        onToggle: (bool value) {
-          unawaited(_setNavigationEnabled(value));
-        },
-        onTap: () {
-          final bool nextValue = !_navigationEnabled;
-          unawaited(LiveBridgeHaptics.toggle(nextValue));
-          unawaited(_setNavigationEnabled(nextValue));
-        },
-      ),
+    final List<LbListItemData> mediaItems = <LbListItemData>[
       LbListItemData(
         title: strings.mediaPlaybackRedesignTitle,
         showChevron: false,
@@ -140,6 +140,39 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
         },
       ),
       LbListItemData(
+        title: strings.useSymbolsInMediaPlayerTitle,
+        showChevron: false,
+        toggleValue: _useSymbolsInMediaPlayer,
+        enabled: _mediaPlaybackEnabled,
+        onToggle: (bool value) {
+          unawaited(_setUseSymbolsInMediaPlayer(value));
+        },
+        onTap: () {
+          if (!_mediaPlaybackEnabled) {
+            return;
+          }
+          final bool nextValue = !_useSymbolsInMediaPlayer;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setUseSymbolsInMediaPlayer(nextValue));
+        },
+      ),
+    ];
+
+    final List<LbListItemData> otherItems = <LbListItemData>[
+      LbListItemData(
+        title: strings.navigationMapsTitle,
+        showChevron: false,
+        toggleValue: _navigationEnabled,
+        onToggle: (bool value) {
+          unawaited(_setNavigationEnabled(value));
+        },
+        onTap: () {
+          final bool nextValue = !_navigationEnabled;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setNavigationEnabled(nextValue));
+        },
+      ),
+      LbListItemData(
         title: strings.weatherBroadcastsTitle,
         showChevron: false,
         toggleValue: _weatherEnabled,
@@ -158,7 +191,13 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
       title: strings.miscellaneousTitle,
       children: <Widget>[
         LbListComponent(
-          items: items,
+          items: mediaItems,
+          rowHeight: LbSpacing.recentRowHeight,
+          extendDividersToEnd: true,
+        ),
+        const SizedBox(height: LbSpacing.md),
+        LbListComponent(
+          items: otherItems,
           rowHeight: LbSpacing.recentRowHeight,
           extendDividersToEnd: true,
         ),

@@ -321,6 +321,10 @@ class MainActivity : FlutterActivity() {
                 res.success(ConversionLogStore.getEntriesRaw(applicationContext))
             }
 
+            "getConversionLogEntriesPage" -> {
+                loadConversionLogEntriesPageAsync(call, res)
+            }
+
             "getNetworkSpeedEnabled" -> {
                 syncNetworkSpeedForegroundService(prefs)
                 res.success(prefs.getNetworkSpeedEnabled())
@@ -510,6 +514,15 @@ class MainActivity : FlutterActivity() {
             }
             "setSmartMediaPlaybackShowOnLockScreen" -> {
                 prefs.setSmartMediaPlaybackShowOnLockScreen(
+                    call.argument<Boolean>("value") ?: false
+                )
+                res.success(true)
+            }
+            "getSmartMediaPlaybackUseSymbolsInPlayer" -> {
+                res.success(prefs.getSmartMediaPlaybackUseSymbolsInPlayer())
+            }
+            "setSmartMediaPlaybackUseSymbolsInPlayer" -> {
+                prefs.setSmartMediaPlaybackUseSymbolsInPlayer(
                     call.argument<Boolean>("value") ?: false
                 )
                 res.success(true)
@@ -910,6 +923,33 @@ class MainActivity : FlutterActivity() {
                     res.error(
                         "installed_apps_failed",
                         "Failed to load installed apps",
+                        error.message
+                    )
+                }
+            }
+        }
+    }
+
+    private fun loadConversionLogEntriesPageAsync(call: MethodCall, res: MethodChannel.Result) {
+        val offset = call.argument<Number>("offset")?.toInt() ?: 0
+        val limit = call.argument<Number>("limit")?.toInt() ?: 10
+
+        appsLoaderExecutor.execute {
+            try {
+                val page = ConversionLogStore.getEntriesPageRaw(
+                    context = applicationContext,
+                    offset = offset,
+                    limit = limit
+                )
+                runOnUiThread {
+                    res.success(page)
+                }
+            } catch (error: Throwable) {
+                Log.e(TAG, "Failed to load conversion log page", error)
+                runOnUiThread {
+                    res.error(
+                        "conversion_log_page_failed",
+                        "Failed to load conversion log page",
                         error.message
                     )
                 }
