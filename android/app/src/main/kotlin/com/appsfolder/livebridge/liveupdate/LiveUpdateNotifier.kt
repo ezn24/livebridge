@@ -52,6 +52,7 @@ object LiveUpdateNotifier {
     private const val SMART_ISLAND_ANIMATION_MAX_DELAY_MS = 3_000L
     private const val SMART_ISLAND_TOKEN_MAX_LENGTH = 20
     private const val PROGRAMMATIC_MIRROR_CANCEL_GRACE_MS = 2_000L
+    private const val FOOD_DELIVERY_AGGREGATE_ENTITY = "delivery"
 
     private val OTP_CODE_LENGTH = 4..8
     private val FALLBACK_PRIVACY_REDACTION_PLACEHOLDERS = setOf(
@@ -68,6 +69,10 @@ object LiveUpdateNotifier {
         Regex("""(?:°\s*[cс](?!\p{L})|℃)""", setOf(RegexOption.IGNORE_CASE))
     private val weatherFahrenheitPattern =
         Regex("""(?:°\s*[fф](?!\p{L})|℉)""", setOf(RegexOption.IGNORE_CASE))
+    private val explicitOrderEntityPrefixPattern = Regex(
+        """(?:#|№|\border\b|\btrip\b|\bride\b|заказ|поездк|订单|訂單|行程)""",
+        setOf(RegexOption.IGNORE_CASE)
+    )
     private const val MEDIA_SYMBOL_PLAY = "\u25B6\uFE0E"
     private const val MEDIA_SYMBOL_PAUSE = "\u2016\uFE0E"
     private const val MEDIA_SYMBOL_PREVIOUS = "\u23EE\uFE0E"
@@ -1140,6 +1145,13 @@ object LiveUpdateNotifier {
         } else {
             configuredDisplayText
         }
+        val otpPresentationText = otpShortTextOverride ?: otpOverride?.code
+        val contentTitle = otpPresentationText ?: displayTitle
+        val contentText = if (otpOverride != null) {
+            appName
+        } else {
+            displayText
+        }
         val visibility = if (
             preferMediaControls &&
             !runtimePrefs.getSmartMediaPlaybackShowOnLockScreen()
@@ -1174,8 +1186,8 @@ object LiveUpdateNotifier {
         }
 
         val builder = NotificationCompat.Builder(context, mirrorChannel.id)
-            .setContentTitle(displayTitle)
-            .setContentText(displayText)
+            .setContentTitle(contentTitle)
+            .setContentText(contentText)
             .setSubText(appName)
             .setOnlyAlertOnce(true)
             .setSilent(true)
@@ -1261,10 +1273,14 @@ object LiveUpdateNotifier {
                 )
             }
         } else if (otpOverride != null) {
-            builder.setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            builder.setStyle(
+                NotificationCompat.BigTextStyle()
+                    .setBigContentTitle(contentTitle)
+                    .bigText(text)
+            )
             builder.setShortCriticalText(
                 limitIslandText(
-                    otpShortTextOverride ?: otpOverride.code,
+                    otpPresentationText ?: otpOverride.code,
                     aospCuttingEnabled,
                     aospCuttingLength
                 )
@@ -1293,7 +1309,7 @@ object LiveUpdateNotifier {
                 null
             }
             val hyperTicker = when {
-                otpOverride != null -> otpShortTextOverride ?: otpOverride.code
+                otpOverride != null -> otpPresentationText ?: otpOverride.code
                 mediaTicker != null -> mediaTicker
                 !smartShortTextOverride.isNullOrBlank() -> smartShortTextOverride
                 determinateProgressPercent != null -> "$determinateProgressPercent%"
@@ -1304,8 +1320,8 @@ object LiveUpdateNotifier {
                 builder = builder,
                 sourcePackageName = sbn.packageName,
                 appName = appName,
-                title = displayTitle,
-                content = displayText,
+                title = contentTitle,
+                content = contentText,
                 ticker = hyperTicker,
                 progressPercent = determinateProgressPercent,
                 largeIcon = preferredLargeIcon,
@@ -1470,12 +1486,18 @@ object LiveUpdateNotifier {
             }
             val compactOrderCode = if (rule.id == "food") {
                 extractCompactOrderCode(entityToken)
+                    ?.takeIf { isExplicitOrderEntityToken(combinedText, entityToken) }
             } else {
                 null
             }
+            val aggregateEntityToken = when {
+                rule.id == "food" && compactOrderCode == null -> FOOD_DELIVERY_AGGREGATE_ENTITY
+                rule.id == "food" -> compactOrderCode
+                else -> entityToken
+            }
 
             return SmartStageMatch(
-                aggregateKey = "$packageLower:${rule.id}:$entityToken",
+                aggregateKey = "$packageLower:${rule.id}:$aggregateEntityToken",
                 stageValue = matchedSignal.stage,
                 maxStage = rule.maxStage,
                 compactOrderCode = compactOrderCode,
@@ -1748,6 +1770,19 @@ object LiveUpdateNotifier {
         }
 
         return "default"
+    }
+
+    private fun isExplicitOrderEntityToken(combinedText: String, token: String): Boolean {
+        if (token == "default" || token.isBlank()) {
+            return false
+        }
+        val tokenIndex = combinedText.indexOf(token.lowercase(Locale.ROOT))
+        if (tokenIndex < 0) {
+            return false
+        }
+        val prefixStart = (tokenIndex - 32).coerceAtLeast(0)
+        val prefix = combinedText.substring(prefixStart, tokenIndex)
+        return explicitOrderEntityPrefixPattern.containsMatchIn(prefix)
     }
 
     private fun extractCompactOrderCode(token: String): String? {

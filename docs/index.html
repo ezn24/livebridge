@@ -101,6 +101,7 @@
         border-radius: var(--radius);
         font-weight: 500;
         font-size: 0.95rem;
+        white-space: nowrap;
         transition: background-color 0.2s, opacity 0.2s;
         cursor: pointer;
         border: none;
@@ -156,6 +157,16 @@
         max-width: 620px;
         color: var(--text-muted);
         font-size: 1.15rem;
+      }
+
+      .hero .hero-support {
+        margin: -12px 0 24px;
+        font-size: 0.95rem;
+      }
+
+      .hero-support a {
+        color: var(--primary);
+        font-weight: 600;
       }
 
       .hero-cta {
@@ -1044,6 +1055,9 @@
               <a class="btn btn-outlined" href="https://github.com/appsfolder/livebridge" target="_blank" rel="noreferrer">Star on GitHub</a>
               <a class="btn btn-outlined" href="https://t.me/livebridge_dev" target="_blank" rel="noreferrer">Discuss</a>
             </div>
+            <p class="hero-support">
+              Want to support development? <a href="https://boosty.to/appsfolder" target="_blank" rel="noreferrer">Donate on Boosty</a>.
+            </p>
             <section class="stats">
               <div class="stat-card">
                 <div class="stat-value" id="stat-version">--</div>

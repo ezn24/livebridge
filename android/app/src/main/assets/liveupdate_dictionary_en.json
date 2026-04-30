@@ -377,6 +377,7 @@
     "egress"
   ],
   "otp_code_patterns": [
+    "(?:\\bcode\\b|\\botp\\b|\\bpasscode\\b)[^\\d\\n]{0,80}(\\d(?:[\\s-]?\\d){3,7})(?!\\d)",
     "(?<!\\S)(\\d{4,8})(?!\\d)",
     "(?<!\\S)(\\d(?:[\\s-]?\\d){3,7})(?!\\d)",
     "(?<!\\S)([A-Z0-9]{4,8})(?!\\w)"
@@ -388,8 +389,7 @@
   "entity_token_patterns": [
     "(?:order|trip|ride)\\s*(?:#|id|no\\.?|number)\\s*([a-zA-Z0-9-]{2,16})",
     "(?:order|trip|ride)\\s+([a-zA-Z0-9-]*\\d[a-zA-Z0-9-]{1,15})",
-    "(?:#|№)\\s*([a-zA-Z0-9-]{2,16})",
-    "\\b(\\d{4,12})\\b"
+    "(?:#|№)\\s*([a-zA-Z0-9-]{2,16})"
   ],
   "status_labels": {
     "food": {
