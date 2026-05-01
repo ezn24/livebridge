@@ -48,6 +48,7 @@ object LiveUpdateNotifier {
     private const val OTP_REPEAT_SUPPRESS_MS = 60_000L
     private const val OTP_AUTOCOPY_COPIED_SHOW_DELAY_MS = 1_000L
     private const val OTP_AUTOCOPY_COPIED_SHOW_DURATION_MS = 1_500L
+    private const val CALL_DURATION_REFRESH_MS = 1_000L
     private const val SMART_ISLAND_ANIMATION_MIN_DELAY_MS = 2_000L
     private const val SMART_ISLAND_ANIMATION_MAX_DELAY_MS = 3_000L
     private const val SMART_ISLAND_TOKEN_MAX_LENGTH = 20
@@ -55,6 +56,22 @@ object LiveUpdateNotifier {
     private const val FOOD_DELIVERY_AGGREGATE_ENTITY = "delivery"
 
     private val OTP_CODE_LENGTH = 4..8
+    private val NATIVE_IN_CALL_PACKAGES = setOf(
+        "com.samsung.android.incallui",
+        "com.samsung.android.dialer",
+        "com.samsung.android.app.telephonyui",
+        "com.android.incallui",
+        "com.android.dialer",
+        "com.google.android.dialer",
+        "com.google.android.apps.dialer"
+    )
+    private val DISCORD_PACKAGES = setOf(
+        "com.discord",
+        "com.discord.alpha",
+        "com.discord.beta",
+        "com.discord.canary",
+        "com.hammerandchisel.discord"
+    )
     private val FALLBACK_PRIVACY_REDACTION_PLACEHOLDERS = setOf(
         "sensitive content hidden",
         "content hidden",
@@ -65,6 +82,35 @@ object LiveUpdateNotifier {
         setOf(RegexOption.IGNORE_CASE)
     )
     private val mediaProgressOnlyPattern = Regex("""^\d{1,3}\s*%$""")
+    private val callDurationPattern = Regex("""(?<![\d:+-])(?:\d{1,2}:)?\d{1,2}:\d{2}(?!\d)""")
+    private val callIncomingTextPattern = Regex(
+        """(^|\s)(incoming|ringing|\u0432\u0445\u043e\u0434\u044f\u0449\p{L}*|\u0437\u0432\u043e\u043d\u0438\u0442|\u6765\u7535|\u4f86\u96fb)(\s|$)""",
+        setOf(RegexOption.IGNORE_CASE)
+    )
+    private val callDialingTextPattern = Regex(
+        """^\s*(calling|dialing|\u043d\u0430\u0431\u043e\u0440|\u0432\u044b\u0437\u044b\u0432\u0430\u044e|\u0441\u043e\u0435\u0434\u0438\u043d\u0435\u043d\u0438\u0435)\b.*""",
+        setOf(RegexOption.IGNORE_CASE)
+    )
+    private val callAnswerActionPattern = Regex(
+        """(answer|accept|decline|reject|\u043f\u0440\u0438\u043d\u044f\u0442\u044c|\u043e\u0442\u0432\u0435\u0442\u0438\u0442\u044c|\u043e\u0442\u043a\u043b\u043e\u043d\u0438\u0442\u044c|\u63a5\u542c|\u62d2\u7edd|\u63a5\u807d|\u62d2\u7d55)""",
+        setOf(RegexOption.IGNORE_CASE)
+    )
+    private val callEndActionPattern = Regex(
+        """(^|\s)(end|end\s*call|hang\s*up|hangup|disconnect|leave|\u0437\u0430\u0432\u0435\u0440\u0448\p{L}*|\u043e\u0442\u0431\u043e\u0439|\u0441\u0431\u0440\u043e\u0441\u0438\u0442\u044c|\u043e\u0442\u043a\u043b\u044e\u0447\p{L}*|\u043f\u043e\u043a\u0438\u043d\u0443\u0442\u044c|\u6302\u65ad|\u639b\u65b7|\u7ed3\u675f|\u7d50\u675f|encerrar|terminar)(\s|$)""",
+        setOf(RegexOption.IGNORE_CASE)
+    )
+    private val callActiveTextPattern = Regex(
+        """((?:ongoing|active).{0,40}\bcall\b|call\s+in\s+progress|on\s+call|in\s+call|(?:voice|\u0433\u043e\u043b\u043e\u0441\u043e\u0432\p{L}*(?:\s+\u0441\u0432\u044f\u0437\p{L}*)?).{0,60}(?:connected|\u043f\u043e\u0434\u043a\u043b\u044e\u0447\p{L}*)|\u0440\u0430\u0437\u0433\u043e\u0432\u043e\u0440|\u0438\u0434[\u0435\u0451]\u0442\s+\u0437\u0432\u043e\u043d\u043e\u043a|\u0442\u0435\u043a\u0443\u0449\u0438\u0439\s+\u0437\u0432\u043e\u043d\u043e\u043a|\u901a\u8bdd\u4e2d|\u901a\u8a71\u4e2d)""",
+        setOf(RegexOption.IGNORE_CASE)
+    )
+    private val callContextTextPattern = Regex(
+        """(\bcall\b|\bvoice\s+(?:chat|channel|connection|connected)\b|\u0433\u043e\u043b\u043e\u0441\u043e\u0432\p{L}*(?:\s+\u0441\u0432\u044f\u0437\p{L}*)?|\u0437\u0432\u043e\u043d\u043e\u043a|\u0432\u044b\u0437\u043e\u0432|\u0440\u0430\u0437\u0433\u043e\u0432\u043e\u0440|\u901a\u8bdd|\u901a\u8a71)""",
+        setOf(RegexOption.IGNORE_CASE)
+    )
+    private val discordVoiceConnectedPattern = Regex(
+        """(\bvoice\s+(?:connected|connection|channel)\b|\u0433\u043e\u043b\u043e\u0441\u043e\u0432\p{L}*(?:\s+\u0441\u0432\u044f\u0437\p{L}*)?\s+\u043f\u043e\u0434\u043a\u043b\u044e\u0447\p{L}*)""",
+        setOf(RegexOption.IGNORE_CASE)
+    )
     private val weatherCelsiusPattern =
         Regex("""(?:°\s*[cс](?!\p{L})|℃)""", setOf(RegexOption.IGNORE_CASE))
     private val weatherFahrenheitPattern =
@@ -93,9 +139,11 @@ object LiveUpdateNotifier {
     private val otpAnimationGenerations = mutableMapOf<String, Long>()
     private val smartAnimationGenerations = mutableMapOf<String, Long>()
     private val smartAnimationStates = mutableMapOf<String, SmartAnimationState>()
+    private val callMirrorStates = mutableMapOf<String, CallMirrorState>()
     private val mirrorKeysByNotificationId = mutableMapOf<Int, String>()
     private val userDismissedMirrorKeys = mutableSetOf<String>()
     private val programmaticMirrorCancelDeadlines = mutableMapOf<Int, Long>()
+    private var callMirrorGenerationCounter = 0L
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -166,10 +214,33 @@ object LiveUpdateNotifier {
             otpAnimationGenerations.clear()
             smartAnimationGenerations.clear()
             smartAnimationStates.clear()
+            callMirrorStates.clear()
             mirrorKeysByNotificationId.clear()
             userDismissedMirrorKeys.clear()
             programmaticMirrorCancelDeadlines.clear()
         }
+    }
+
+    fun cancelCallMirrors(context: Context): Int {
+        val manager = NotificationManagerCompat.from(context)
+        val stateNotificationIds = synchronized(stateLock) {
+            val keys = callMirrorStates.keys.toList()
+            callMirrorStates.clear()
+            keys.map(::mirrorIdForKey)
+        }
+        val activeNotificationIds = runCatching {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                    ?: return@runCatching emptyList()
+            notificationManager.activeNotifications
+                .filter { it.notification.channelId == MirrorNotificationChannel.CALLS.id }
+                .map { it.id }
+        }.getOrDefault(emptyList())
+        val notificationIds = (stateNotificationIds + activeNotificationIds).distinct()
+        notificationIds.forEach { notificationId ->
+            cancelMirroredNotification(manager, notificationId)
+        }
+        return notificationIds.size
     }
 
     fun maybeMirror(context: Context, prefs: ConverterPrefs, sbn: StatusBarNotification): MirrorResult {
@@ -202,6 +273,10 @@ object LiveUpdateNotifier {
                 cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
                 return notMirroredResult()
             }
+            if (isNativeInCallNotification(sbn)) {
+                cancelMirrorsForIgnoredSource(manager, sbn)
+                return notMirroredResult()
+            }
             val parserDictionary = LiveParserDictionaryLoader.get(context, prefs)
             if (isPrivacyRedactedNotification(sbn.notification, parserDictionary)) {
                 return notMirroredResult()
@@ -217,7 +292,74 @@ object LiveUpdateNotifier {
                 cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
                 return notMirroredResult()
             }
-            if (prefs.shouldBypassAllRulesForPackage(sbn.packageName)) {
+            val source = sbn.notification
+            val mediaPlaybackSmartEnabled = prefs.getSmartMediaPlaybackEnabled()
+            val bypassesRules = prefs.shouldBypassAllRulesForPackage(sbn.packageName)
+            val callMirrorSnapshot = if (prefs.getSmartCallsEnabled()) {
+                detectActiveCallMirrorSnapshot(sbn)
+            } else {
+                null
+            }
+            if (callMirrorSnapshot != null) {
+                if (!bypassesRules &&
+                    !passesBaseFilters(prefs, sbn, parserDictionary, mediaPlaybackSmartEnabled)
+                ) {
+                    val staleAggregateIds = synchronized(stateLock) {
+                        clearAggregateTrackingForSbnKeyLocked(sbn.key)
+                    }
+                    staleAggregateIds.forEach { cancelMirroredNotification(manager, it) }
+                    cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
+                    return notMirroredResult()
+                }
+                val staleAggregateIds = synchronized(stateLock) {
+                    clearAggregateTrackingForSbnKeyLocked(sbn.key)
+                }
+                staleAggregateIds.forEach { cancelMirroredNotification(manager, it) }
+                val callStartedAtWallClockMs = upsertCallMirrorState(
+                    context = context,
+                    sbn = sbn,
+                    appPresentationOverride = appPresentationOverride,
+                    snapshot = callMirrorSnapshot
+                )
+                val notification = buildMirroredNotification(
+                    context = context,
+                    sbn = sbn,
+                    appPresentationOverride = appPresentationOverride,
+                    mirrorChannel = MirrorNotificationChannel.CALLS,
+                    progressOverride = null,
+                    otpOverride = null,
+                    smartShortTextOverride = null,
+                    requestPromoted = true,
+                    allowNavigationIconHeuristics = false,
+                    callMirrorActive = true,
+                    callChronometerStartWallClockMs = callStartedAtWallClockMs
+                )
+                notifyWithPromotionFallback(
+                    context = context,
+                    manager = manager,
+                    notificationId = mirrorIdForKey(sbn.key),
+                    mirrorKey = sbn.key,
+                    promotedNotification = notification,
+                    sbn = sbn,
+                    appPresentationOverride = appPresentationOverride,
+                    mirrorChannel = MirrorNotificationChannel.CALLS,
+                    progressOverride = null,
+                    otpOverride = null,
+                    smartShortTextOverride = null,
+                    allowNavigationIconHeuristics = false,
+                    callMirrorActive = true,
+                    callChronometerStartWallClockMs = callStartedAtWallClockMs
+                )
+                return mirroredResult()
+            } else if (source.category == Notification.CATEGORY_CALL) {
+                val staleAggregateIds = synchronized(stateLock) {
+                    clearAggregateTrackingForSbnKeyLocked(sbn.key)
+                }
+                staleAggregateIds.forEach { cancelMirroredNotification(manager, it) }
+                cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
+                return notMirroredResult()
+            }
+            if (bypassesRules) {
                 val staleAggregateIds = synchronized(stateLock) {
                     clearAggregateTrackingForSbnKeyLocked(sbn.key)
                 }
@@ -250,7 +392,6 @@ object LiveUpdateNotifier {
                 )
                 return mirroredResult()
             }
-            val mediaPlaybackSmartEnabled = prefs.getSmartMediaPlaybackEnabled()
             if (!passesBaseFilters(prefs, sbn, parserDictionary, mediaPlaybackSmartEnabled)) {
                 val staleAggregateIds = synchronized(stateLock) {
                     clearAggregateTrackingForSbnKeyLocked(sbn.key)
@@ -259,7 +400,6 @@ object LiveUpdateNotifier {
                 cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
                 return notMirroredResult()
             }
-            val source = sbn.notification
             val hasNativeProgress = hasEffectiveProgress(sbn.packageName, source)
             val animatedIslandEnabled = prefs.getAnimatedIslandEnabled()
             val isMediaPlaybackNotification = mediaPlaybackSmartEnabled &&
@@ -761,12 +901,347 @@ object LiveUpdateNotifier {
         }
     }
 
+    private fun detectActiveCallMirrorSnapshot(sbn: StatusBarNotification): CallMirrorSnapshot? {
+        val source = sbn.notification
+        val ongoing = sbn.isOngoing ||
+                source.flags and Notification.FLAG_ONGOING_EVENT != 0 ||
+                !sbn.isClearable
+        if (!ongoing) {
+            return null
+        }
+
+        val contentTexts = collectCallContentTexts(
+            notification = source,
+            fallbackTitle = sbn.packageName
+        )
+        val actionTexts = collectCallActionTexts(source)
+        if (hasIncomingOrDialingCallMarker(contentTexts, actionTexts)) {
+            return null
+        }
+
+        val timeSeed = resolveCallTimeSeed(source, contentTexts)
+        val isDiscordVoiceConnection = isDiscordVoiceConnectionNotification(
+            sbn = sbn,
+            contentTexts = contentTexts,
+            actionTexts = actionTexts
+        )
+        val hasEndCallAction = actionTexts.any(callEndActionPattern::containsMatchIn)
+        val hasActiveCallText = contentTexts.any(callActiveTextPattern::containsMatchIn)
+        val hasCallContext =
+            source.category == Notification.CATEGORY_CALL ||
+                    contentTexts.any(callContextTextPattern::containsMatchIn) ||
+                    isDiscordVoiceConnection
+        if (!hasCallContext) {
+            return null
+        }
+        if (source.category != Notification.CATEGORY_CALL &&
+            !hasEndCallAction &&
+            !isDiscordVoiceConnection
+        ) {
+            return null
+        }
+        if (!timeSeed.hasExplicitSource &&
+            !hasEndCallAction &&
+            !hasActiveCallText &&
+            !isDiscordVoiceConnection
+        ) {
+            return null
+        }
+
+        return CallMirrorSnapshot(
+            explicitStartWallClockMs = timeSeed.explicitStartWallClockMs,
+            elapsedDurationMs = timeSeed.elapsedDurationMs
+        )
+    }
+
+    private fun isNativeInCallNotification(sbn: StatusBarNotification): Boolean {
+        val packageName = sbn.packageName.lowercase(Locale.ROOT)
+        return packageName in NATIVE_IN_CALL_PACKAGES &&
+                sbn.notification.category == Notification.CATEGORY_CALL
+    }
+
+    private fun isDiscordVoiceConnectionNotification(
+        sbn: StatusBarNotification,
+        contentTexts: List<String>,
+        actionTexts: List<String>
+    ): Boolean {
+        val packageName = sbn.packageName.lowercase(Locale.ROOT)
+        if (packageName !in DISCORD_PACKAGES) {
+            return false
+        }
+        val source = sbn.notification
+        val channelId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            source.channelId?.trim().orEmpty()
+        } else {
+            ""
+        }
+        val hasVoiceChannel = channelId.equals("mediaConnections", ignoreCase = true)
+        val hasVoiceText = contentTexts.any(discordVoiceConnectedPattern::containsMatchIn)
+        val hasDisconnectAction = actionTexts.any(callEndActionPattern::containsMatchIn)
+        return (hasVoiceChannel || hasVoiceText) && (hasVoiceText || hasDisconnectAction)
+    }
+
+    private fun upsertCallMirrorState(
+        context: Context,
+        sbn: StatusBarNotification,
+        appPresentationOverride: AppPresentationOverride,
+        snapshot: CallMirrorSnapshot
+    ): Long {
+        val now = System.currentTimeMillis()
+        var scheduleGeneration: Long? = null
+        val startedAtWallClockMs = synchronized(stateLock) {
+            val existing = callMirrorStates[sbn.key]
+            val resolvedStart = resolveCallStartedAtWallClockMs(
+                sbn = sbn,
+                snapshot = snapshot,
+                existingStartedAtWallClockMs = existing?.startedAtWallClockMs,
+                nowWallClockMs = now
+            )
+            if (existing == null) {
+                callMirrorGenerationCounter += 1L
+                val generation = callMirrorGenerationCounter
+                callMirrorStates[sbn.key] = CallMirrorState(
+                    sbn = sbn,
+                    appPresentationOverride = appPresentationOverride,
+                    startedAtWallClockMs = resolvedStart,
+                    generation = generation
+                )
+                scheduleGeneration = generation
+            } else {
+                existing.sbn = sbn
+                existing.appPresentationOverride = appPresentationOverride
+                existing.startedAtWallClockMs = resolvedStart
+            }
+            callMirrorStates[sbn.key]?.startedAtWallClockMs ?: resolvedStart
+        }
+
+        scheduleGeneration?.let { generation ->
+            scheduleCallMirrorRefresh(
+                context = context.applicationContext,
+                mirrorKey = sbn.key,
+                generation = generation
+            )
+        }
+        return startedAtWallClockMs
+    }
+
+    private fun scheduleCallMirrorRefresh(
+        context: Context,
+        mirrorKey: String,
+        generation: Long
+    ) {
+        mainHandler.postDelayed({
+            val frame = synchronized(stateLock) {
+                val state = callMirrorStates[mirrorKey] ?: return@synchronized null
+                if (state.generation != generation || isUserDismissedMirrorLocked(mirrorKey)) {
+                    if (state.generation == generation) {
+                        callMirrorStates.remove(mirrorKey)
+                    }
+                    return@synchronized null
+                }
+                CallMirrorFrame(
+                    sbn = state.sbn,
+                    appPresentationOverride = state.appPresentationOverride,
+                    startedAtWallClockMs = state.startedAtWallClockMs
+                )
+            } ?: return@postDelayed
+
+            val manager = NotificationManagerCompat.from(context)
+            try {
+                val notification = buildMirroredNotification(
+                    context = context,
+                    sbn = frame.sbn,
+                    appPresentationOverride = frame.appPresentationOverride,
+                    mirrorChannel = MirrorNotificationChannel.CALLS,
+                    progressOverride = null,
+                    otpOverride = null,
+                    smartShortTextOverride = null,
+                    requestPromoted = true,
+                    allowNavigationIconHeuristics = false,
+                    callMirrorActive = true,
+                    callChronometerStartWallClockMs = frame.startedAtWallClockMs
+                )
+                notifyWithPromotionFallback(
+                    context = context,
+                    manager = manager,
+                    notificationId = mirrorIdForKey(mirrorKey),
+                    mirrorKey = mirrorKey,
+                    promotedNotification = notification,
+                    sbn = frame.sbn,
+                    appPresentationOverride = frame.appPresentationOverride,
+                    mirrorChannel = MirrorNotificationChannel.CALLS,
+                    progressOverride = null,
+                    otpOverride = null,
+                    smartShortTextOverride = null,
+                    allowNavigationIconHeuristics = false,
+                    callMirrorActive = true,
+                    callChronometerStartWallClockMs = frame.startedAtWallClockMs
+                )
+            } catch (error: Throwable) {
+                Log.e(TAG, "Failed call duration mirror update: $mirrorKey", error)
+            }
+
+            if (isCallMirrorGenerationCurrent(mirrorKey, generation)) {
+                scheduleCallMirrorRefresh(
+                    context = context,
+                    mirrorKey = mirrorKey,
+                    generation = generation
+                )
+            }
+        }, CALL_DURATION_REFRESH_MS)
+    }
+
+    private fun isCallMirrorGenerationCurrent(mirrorKey: String, generation: Long): Boolean {
+        return synchronized(stateLock) {
+            val state = callMirrorStates[mirrorKey] ?: return@synchronized false
+            state.generation == generation && !isUserDismissedMirrorLocked(mirrorKey)
+        }
+    }
+
+    private fun resolveCallStartedAtWallClockMs(
+        sbn: StatusBarNotification,
+        snapshot: CallMirrorSnapshot,
+        existingStartedAtWallClockMs: Long?,
+        nowWallClockMs: Long
+    ): Long {
+        val resolved = when {
+            snapshot.explicitStartWallClockMs != null -> snapshot.explicitStartWallClockMs
+            snapshot.elapsedDurationMs != null -> nowWallClockMs - snapshot.elapsedDurationMs
+            existingStartedAtWallClockMs != null -> existingStartedAtWallClockMs
+            sbn.postTime > 0L -> sbn.postTime
+            else -> nowWallClockMs
+        }
+        return resolved.coerceIn(0L, nowWallClockMs)
+    }
+
+    private fun resolveCallTimeSeed(
+        notification: Notification,
+        contentTexts: List<String>
+    ): CallTimeSeed {
+        resolveCallChronometerStartWallClockMs(notification)?.let { startMs ->
+            return CallTimeSeed(
+                explicitStartWallClockMs = startMs,
+                elapsedDurationMs = null
+            )
+        }
+
+        val parsedDurationMs = contentTexts
+            .asSequence()
+            .flatMap { text -> callDurationPattern.findAll(text).map { it.value } }
+            .mapNotNull(::parseClockDurationMs)
+            .maxOrNull()
+
+        return CallTimeSeed(
+            explicitStartWallClockMs = null,
+            elapsedDurationMs = parsedDurationMs
+        )
+    }
+
+    private fun resolveCallChronometerStartWallClockMs(notification: Notification): Long? {
+        val extras = notification.extras
+        if (!extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER, false)) {
+            return null
+        }
+        if (extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN, false)) {
+            return null
+        }
+        return notification.`when`.takeIf { it > 0L }
+    }
+
+    private fun parseClockDurationMs(value: String): Long? {
+        val parts = value.split(":")
+        if (parts.size !in 2..3) {
+            return null
+        }
+        val numbers = parts.map { it.toLongOrNull() ?: return null }
+        val totalSeconds = if (numbers.size == 3) {
+            val hours = numbers[0]
+            val minutes = numbers[1]
+            val seconds = numbers[2]
+            if (minutes !in 0..59 || seconds !in 0..59) {
+                return null
+            }
+            hours * 3_600L + minutes * 60L + seconds
+        } else {
+            val minutes = numbers[0]
+            val seconds = numbers[1]
+            if (seconds !in 0..59) {
+                return null
+            }
+            minutes * 60L + seconds
+        }
+        return (totalSeconds * 1_000L).coerceAtLeast(0L)
+    }
+
+    private fun hasIncomingOrDialingCallMarker(
+        contentTexts: List<String>,
+        actionTexts: List<String>
+    ): Boolean {
+        if (actionTexts.any(callAnswerActionPattern::containsMatchIn)) {
+            return true
+        }
+        return contentTexts.any { text ->
+            callIncomingTextPattern.containsMatchIn(text) ||
+                    callDialingTextPattern.containsMatchIn(text)
+        }
+    }
+
+    private fun collectCallActionTexts(notification: Notification): List<String> {
+        return notification.actions
+            ?.mapNotNull { action -> normalizeNotificationText(action.title) }
+            ?.distinct()
+            .orEmpty()
+    }
+
+    private fun collectCallContentTexts(
+        notification: Notification,
+        fallbackTitle: String
+    ): List<String> {
+        val extras = notification.extras
+        val parts = mutableListOf<String>()
+
+        fun add(value: CharSequence?) {
+            normalizeNotificationText(value)?.let(parts::add)
+        }
+
+        add(extras.getCharSequence(Notification.EXTRA_TITLE))
+        add(extras.getCharSequence(Notification.EXTRA_TITLE_BIG))
+        add(extras.getCharSequence(Notification.EXTRA_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_BIG_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))
+        add(extras.getCharSequence(Notification.EXTRA_INFO_TEXT))
+        add(notification.tickerText)
+        extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.forEach(::add)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            @Suppress("DEPRECATION")
+            extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+                ?.let(Notification.MessagingStyle.Message::getMessagesFromBundleArray)
+                ?.forEach { message -> add(message.text) }
+        }
+        extractRemoteViewTexts(notification).forEach { text -> add(text) }
+
+        if (parts.isEmpty()) {
+            parts.add(fallbackTitle)
+        }
+        return parts.distinct()
+    }
+
+    private fun normalizeNotificationText(value: CharSequence?): String? {
+        return value
+            ?.toString()
+            ?.replace(Regex("\\s+"), " ")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+    }
+
     fun cancelMirrored(context: Context, sbn: StatusBarNotification) {
         try {
             val manager = NotificationManagerCompat.from(context)
             val staleAggregateIds = synchronized(stateLock) {
                 val directMirrorId = mirrorIdForKey(sbn.key)
                 userDismissedMirrorKeys.remove(sbn.key)
+                callMirrorStates.remove(sbn.key)
                 mirrorKeysByNotificationId.remove(directMirrorId)
                 clearAggregateTrackingForSbnKeyLocked(sbn.key)
             }
@@ -775,6 +1250,21 @@ object LiveUpdateNotifier {
         } catch (error: Throwable) {
             Log.e(TAG, "Failed to cancel mirrored notification: ${sbn.key}", error)
         }
+    }
+
+    private fun cancelMirrorsForIgnoredSource(
+        manager: NotificationManagerCompat,
+        sbn: StatusBarNotification
+    ) {
+        val directMirrorId = mirrorIdForKey(sbn.key)
+        val staleAggregateIds = synchronized(stateLock) {
+            userDismissedMirrorKeys.remove(sbn.key)
+            callMirrorStates.remove(sbn.key)
+            mirrorKeysByNotificationId.remove(directMirrorId)
+            clearAggregateTrackingForSbnKeyLocked(sbn.key)
+        }
+        staleAggregateIds.forEach { cancelMirroredNotification(manager, it) }
+        cancelMirroredNotification(manager, directMirrorId)
     }
 
     fun handleMirroredRemoved(context: Context, sbn: StatusBarNotification) {
@@ -796,6 +1286,7 @@ object LiveUpdateNotifier {
 
             val mirrorKey = mirrorKeysByNotificationId.remove(sbn.id) ?: return
             userDismissedMirrorKeys.add(mirrorKey)
+            callMirrorStates.remove(mirrorKey)
             smartAnimationGenerations.remove(mirrorKey)
             smartAnimationStates.remove(mirrorKey)
             otpAnimationGenerations.remove(mirrorKey)
@@ -899,6 +1390,20 @@ object LiveUpdateNotifier {
                     MirrorChannelText(
                         name = "Media playback",
                         description = "Converted media playback notifications"
+                    )
+                }
+            }
+
+            MirrorNotificationChannel.CALLS -> {
+                if (isRussian) {
+                    MirrorChannelText(
+                        name = "Calls",
+                        description = "\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0435 \u0437\u0432\u043e\u043d\u043a\u0438 \u0441 \u0442\u0430\u0439\u043c\u0435\u0440\u043e\u043c"
+                    )
+                } else {
+                    MirrorChannelText(
+                        name = "Calls",
+                        description = "Active calls with elapsed call time"
                     )
                 }
             }
@@ -1071,7 +1576,9 @@ object LiveUpdateNotifier {
         mediaPlaybackIsPlaying: Boolean? = null,
         titleOverride: String? = null,
         textOverride: String? = null,
-        largeIconOverride: Bitmap? = null
+        largeIconOverride: Bitmap? = null,
+        callMirrorActive: Boolean = false,
+        callChronometerStartWallClockMs: Long? = null
     ): Notification {
         val runtimePrefs = ConverterPrefs(context)
         val parserDictionary = LiveParserDictionaryLoader.get(context, runtimePrefs)
@@ -1145,10 +1652,21 @@ object LiveUpdateNotifier {
         } else {
             configuredDisplayText
         }
+        val callMirrorBodyText = if (callMirrorActive) {
+            resolveCallMirrorBodyText(
+                notification = source,
+                displayTitle = displayTitle,
+                displayText = displayText
+            )
+        } else {
+            null
+        }
         val otpPresentationText = otpShortTextOverride ?: otpOverride?.code
         val contentTitle = otpPresentationText ?: displayTitle
         val contentText = if (otpOverride != null) {
             appName
+        } else if (callMirrorBodyText != null) {
+            callMirrorBodyText
         } else {
             displayText
         }
@@ -1165,6 +1683,9 @@ object LiveUpdateNotifier {
         val aospCuttingEnabled = runtimePrefs.getAospCuttingEnabled()
         val aospCuttingLength = runtimePrefs.getAospCuttingLength()
         val hyperBridgeEnabled = runtimePrefs.getHyperBridgeEnabled()
+        val callChronometerStart = callChronometerStartWallClockMs
+            ?.takeIf { callMirrorActive && it > 0L }
+            ?.coerceAtMost(System.currentTimeMillis())
 
         val progressMax = progressOverride?.max ?: source.extras.getInt(Notification.EXTRA_PROGRESS_MAX, 0)
         val progressValue = progressOverride?.value ?: source.extras.getInt(Notification.EXTRA_PROGRESS, 0)
@@ -1194,12 +1715,25 @@ object LiveUpdateNotifier {
             .setDefaults(0)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setWhen(resolveStableWhen(source, sbn.postTime))
-            .setShowWhen(false)
+            .setWhen(callChronometerStart ?: resolveStableWhen(source, sbn.postTime))
+            .setShowWhen(callChronometerStart != null)
             .setColor(progressColor)
-            .setCategory(if (hasProgress) Notification.CATEGORY_PROGRESS else Notification.CATEGORY_STATUS)
+            .setCategory(
+                if (callMirrorActive) {
+                    Notification.CATEGORY_CALL
+                } else if (hasProgress) {
+                    Notification.CATEGORY_PROGRESS
+                } else {
+                    Notification.CATEGORY_STATUS
+                }
+            )
             .setVisibility(visibility)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+        if (callChronometerStart != null) {
+            builder.setUsesChronometer(true)
+            builder.setChronometerCountDown(false)
+        }
 
         val preferredSmallIcon = when (appPresentationOverride.iconSource) {
             NotificationIconSource.NOTIFICATION ->
@@ -1286,7 +1820,16 @@ object LiveUpdateNotifier {
                 )
             )
         } else {
-            builder.setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(callMirrorBodyText ?: text))
+        }
+        if (callChronometerStart != null && !hasProgress) {
+            builder.setShortCriticalText(
+                limitIslandText(
+                    formatMillisecondsAsClock(System.currentTimeMillis() - callChronometerStart),
+                    aospCuttingEnabled,
+                    aospCuttingLength
+                )
+            )
         }
         if (smartShortTextOverride != null && !hasProgress) {
             builder.setContentText(smartShortTextOverride)
@@ -1310,6 +1853,8 @@ object LiveUpdateNotifier {
             }
             val hyperTicker = when {
                 otpOverride != null -> otpPresentationText ?: otpOverride.code
+                callChronometerStart != null ->
+                    formatMillisecondsAsClock(System.currentTimeMillis() - callChronometerStart)
                 mediaTicker != null -> mediaTicker
                 !smartShortTextOverride.isNullOrBlank() -> smartShortTextOverride
                 determinateProgressPercent != null -> "$determinateProgressPercent%"
@@ -1352,7 +1897,9 @@ object LiveUpdateNotifier {
         mediaPlaybackIsPlaying: Boolean? = null,
         titleOverride: String? = null,
         textOverride: String? = null,
-        largeIconOverride: Bitmap? = null
+        largeIconOverride: Bitmap? = null,
+        callMirrorActive: Boolean = false,
+        callChronometerStartWallClockMs: Long? = null
     ) {
         try {
             notifyMirroredNotification(
@@ -1378,7 +1925,9 @@ object LiveUpdateNotifier {
                 mediaPlaybackIsPlaying = mediaPlaybackIsPlaying,
                 titleOverride = titleOverride,
                 textOverride = textOverride,
-                largeIconOverride = largeIconOverride
+                largeIconOverride = largeIconOverride,
+                callMirrorActive = callMirrorActive,
+                callChronometerStartWallClockMs = callChronometerStartWallClockMs
             )
             notifyMirroredNotification(
                 manager = manager,
@@ -3294,6 +3843,63 @@ object LiveUpdateNotifier {
         return remoteText ?: "Live update in progress"
     }
 
+    private fun resolveCallMirrorBodyText(
+        notification: Notification,
+        displayTitle: String,
+        displayText: String
+    ): String? {
+        val extras = notification.extras
+        val titleTexts = linkedSetOf<String>()
+        val candidates = linkedSetOf<String>()
+
+        fun addTitle(value: CharSequence?) {
+            normalizeNotificationText(value)?.let(titleTexts::add)
+        }
+
+        fun addCandidate(value: CharSequence?) {
+            val text = normalizeNotificationText(value) ?: return
+            if (!isGeneratedCallBodyFallback(text)) {
+                candidates.add(text)
+            }
+        }
+
+        addTitle(extras.getCharSequence(Notification.EXTRA_TITLE))
+        addTitle(extras.getCharSequence(Notification.EXTRA_TITLE_BIG))
+        addTitle(displayTitle)
+
+        addCandidate(extras.getCharSequence(Notification.EXTRA_BIG_TEXT))
+        addCandidate(extras.getCharSequence(Notification.EXTRA_TEXT))
+        addCandidate(extras.getCharSequence(Notification.EXTRA_SUB_TEXT))
+        addCandidate(extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))
+        addCandidate(extras.getCharSequence(Notification.EXTRA_INFO_TEXT))
+        extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.forEach(::addCandidate)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            @Suppress("DEPRECATION")
+            extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+                ?.let(Notification.MessagingStyle.Message::getMessagesFromBundleArray)
+                ?.asReversed()
+                ?.firstOrNull { message -> !message.text.isNullOrBlank() }
+                ?.let { message -> addCandidate(message.text) }
+        }
+        extractRemoteViewTexts(notification).forEach(::addCandidate)
+        addCandidate(displayText)
+
+        val nonTitleCandidate = candidates.firstOrNull { candidate ->
+            titleTexts.none { title -> callTextEquals(candidate, title) }
+        }
+        return nonTitleCandidate
+            ?: candidates.firstOrNull()
+            ?: titleTexts.firstOrNull { !isGeneratedCallBodyFallback(it) }
+    }
+
+    private fun callTextEquals(left: String, right: String): Boolean {
+        return left.trim().equals(right.trim(), ignoreCase = true)
+    }
+
+    private fun isGeneratedCallBodyFallback(text: String): Boolean {
+        return text.equals("Live update in progress", ignoreCase = true)
+    }
+
     private fun collectNotificationText(
         notification: Notification,
         fallbackTitle: String,
@@ -3673,7 +4279,10 @@ object LiveUpdateNotifier {
         synchronized(stateLock) {
             programmaticMirrorCancelDeadlines[notificationId] =
                 SystemClock.elapsedRealtime() + PROGRAMMATIC_MIRROR_CANCEL_GRACE_MS
-            mirrorKeysByNotificationId.remove(notificationId)
+            val mirrorKey = mirrorKeysByNotificationId.remove(notificationId)
+            if (mirrorKey != null) {
+                callMirrorStates.remove(mirrorKey)
+            }
         }
         manager.cancel(notificationId)
     }
@@ -3911,6 +4520,7 @@ object LiveUpdateNotifier {
         OTP_CODES("livebridge_otp_codes"),
         SMART_CONVERSIONS("livebridge_smart_conversions"),
         MEDIA_PLAYBACK("livebridge_media_playback"),
+        CALLS("livebridge_calls"),
         NETWORK_CONNECTIONS("livebridge_network_connections"),
         MISCELLANEOUS("livebridge_miscellaneous_conversions"),
         BYPASS("livebridge_bypass_applications")
@@ -3962,6 +4572,32 @@ object LiveUpdateNotifier {
     private data class TextProgressMatch(
         val percent: Int,
         val shortText: String
+    )
+
+    private data class CallMirrorSnapshot(
+        val explicitStartWallClockMs: Long?,
+        val elapsedDurationMs: Long?
+    )
+
+    private data class CallTimeSeed(
+        val explicitStartWallClockMs: Long?,
+        val elapsedDurationMs: Long?
+    ) {
+        val hasExplicitSource: Boolean
+            get() = explicitStartWallClockMs != null || elapsedDurationMs != null
+    }
+
+    private data class CallMirrorState(
+        var sbn: StatusBarNotification,
+        var appPresentationOverride: AppPresentationOverride,
+        var startedAtWallClockMs: Long,
+        val generation: Long
+    )
+
+    private data class CallMirrorFrame(
+        val sbn: StatusBarNotification,
+        val appPresentationOverride: AppPresentationOverride,
+        val startedAtWallClockMs: Long
     )
 
     private data class MediaPlaybackSnapshot(

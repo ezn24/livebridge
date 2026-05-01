@@ -381,6 +381,7 @@ class ConverterPrefs(context: Context) {
     fun getSmartStatusDetectionEnabled(): Boolean {
         return getSmartTaxiEnabled() ||
             getSmartDeliveryEnabled() ||
+            getSmartCallsEnabled() ||
             getSmartNavigationEnabled() ||
             getSmartWeatherEnabled() ||
             getSmartExternalDevicesEnabled() ||
@@ -392,6 +393,7 @@ class ConverterPrefs(context: Context) {
             .putBoolean(KEY_SMART_STATUS_ENABLED, value)
             .putBoolean(KEY_SMART_TAXI_ENABLED, value)
             .putBoolean(KEY_SMART_DELIVERY_ENABLED, value)
+            .putBoolean(KEY_SMART_CALLS_ENABLED, value)
             .putBoolean(KEY_SMART_NAVIGATION_ENABLED, value)
             .putBoolean(KEY_SMART_WEATHER_ENABLED, value)
             .putBoolean(KEY_SMART_EXTERNAL_DEVICES_ENABLED, value)
@@ -413,6 +415,14 @@ class ConverterPrefs(context: Context) {
 
     fun setSmartDeliveryEnabled(value: Boolean) {
         prefs.edit().putBoolean(KEY_SMART_DELIVERY_ENABLED, value).apply()
+    }
+
+    fun getSmartCallsEnabled(): Boolean {
+        return prefs.getBoolean(KEY_SMART_CALLS_ENABLED, getLegacySmartStatusDefault())
+    }
+
+    fun setSmartCallsEnabled(value: Boolean) {
+        prefs.edit().putBoolean(KEY_SMART_CALLS_ENABLED, value).apply()
     }
 
     fun getSmartMediaPlaybackEnabled(): Boolean {
@@ -809,6 +819,7 @@ class ConverterPrefs(context: Context) {
         private const val KEY_SMART_PACKAGE_MODE = "smart_package_mode"
         private const val KEY_SMART_TAXI_ENABLED = "smart_taxi_enabled"
         private const val KEY_SMART_DELIVERY_ENABLED = "smart_delivery_enabled"
+        private const val KEY_SMART_CALLS_ENABLED = "smart_calls_enabled"
         private const val KEY_SMART_MEDIA_PLAYBACK_ENABLED = "smart_media_playback_enabled"
         private const val KEY_SMART_MEDIA_PLAYBACK_SHOW_ON_LOCK_SCREEN =
             "smart_media_playback_show_on_lock_screen"

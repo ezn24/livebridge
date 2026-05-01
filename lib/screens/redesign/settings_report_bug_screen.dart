@@ -118,6 +118,8 @@ class _SettingsReportBugScreenState extends State<SettingsReportBugScreen> {
         LiveBridgePlatform.getSmartMediaPlaybackShowOnLockScreen();
     final Future<bool> smartMediaUseSymbolsFuture =
         LiveBridgePlatform.getSmartMediaPlaybackUseSymbolsInPlayer();
+    final Future<bool> smartCallsFuture =
+        LiveBridgePlatform.getSmartCallsEnabled();
     final Future<bool> smartNavigationFuture =
         LiveBridgePlatform.getSmartNavigationEnabled();
     final Future<bool> smartWeatherFuture =
@@ -233,6 +235,7 @@ class _SettingsReportBugScreenState extends State<SettingsReportBugScreen> {
             await smartMediaShowOnLockFuture,
         'smart_media_playback_use_symbols_in_player':
             await smartMediaUseSymbolsFuture,
+        'smart_calls_enabled': await smartCallsFuture,
         'smart_navigation_enabled': await smartNavigationFuture,
         'smart_weather_enabled': await smartWeatherFuture,
         'smart_external_devices_enabled': await smartExternalDevicesFuture,

@@ -701,6 +701,15 @@ class AppStrings {
     zhHant: '媒體播放',
   );
 
+  String get callsTitle => tr(
+    en: 'Calls',
+    ru: 'Звонки',
+    tr: 'Aramalar',
+    ptBr: 'Chamadas',
+    zhHans: '通话',
+    zhHant: '通話',
+  );
+
   String get showMediaOnLockTitle => tr(
     en: 'Show media on lockscreen',
     ru: 'Медиа на экране блокировки',
