@@ -400,7 +400,9 @@ object LiveUpdateNotifier {
                 cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
                 return notMirroredResult()
             }
-            val hasNativeProgress = hasEffectiveProgress(sbn.packageName, source)
+            val nativeProgressEnabled = prefs.getOnlyWithProgress()
+            val hasNativeProgress = nativeProgressEnabled &&
+                    hasEffectiveProgress(sbn.packageName, source)
             val animatedIslandEnabled = prefs.getAnimatedIslandEnabled()
             val isMediaPlaybackNotification = mediaPlaybackSmartEnabled &&
                     isLikelyMediaPlaybackNotification(source)
@@ -471,21 +473,6 @@ object LiveUpdateNotifier {
                         parserDictionary = parserDictionary
                     )
             if (shouldSuppressNonTrafficVpn) {
-                val staleAggregateIds = synchronized(stateLock) {
-                    clearAggregateTrackingForSbnKeyLocked(sbn.key)
-                }
-                staleAggregateIds.forEach { cancelMirroredNotification(manager, it) }
-                cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
-                return notMirroredResult()
-            }
-
-            if (!hasNativeProgress &&
-                !isMediaPlaybackNotification &&
-                otpMatch == null &&
-                smartMatch == null &&
-                textProgressMatch == null &&
-                prefs.getOnlyWithProgress()
-            ) {
                 val staleAggregateIds = synchronized(stateLock) {
                     clearAggregateTrackingForSbnKeyLocked(sbn.key)
                 }
@@ -839,22 +826,17 @@ object LiveUpdateNotifier {
                     mirroredResult(dedupKind = dedupKind)
                 }
 
-                else -> {
+                hasNativeProgress -> {
                     val staleAggregateIds = synchronized(stateLock) {
                         clearAggregateTrackingForSbnKeyLocked(sbn.key)
                     }
                     staleAggregateIds.forEach { cancelMirroredNotification(manager, it) }
 
-                    val mirrorChannel = if (hasNativeProgress) {
-                        MirrorNotificationChannel.PROGRESS_NOTIFICATIONS
-                    } else {
-                        MirrorNotificationChannel.BYPASS
-                    }
                     val notification = buildMirroredNotification(
                         context = context,
                         sbn = sbn,
                         appPresentationOverride = appPresentationOverride,
-                        mirrorChannel = mirrorChannel,
+                        mirrorChannel = MirrorNotificationChannel.PROGRESS_NOTIFICATIONS,
                         progressOverride = null,
                         otpOverride = null,
                         smartShortTextOverride = null,
@@ -868,12 +850,21 @@ object LiveUpdateNotifier {
                         promotedNotification = notification,
                         sbn = sbn,
                         appPresentationOverride = appPresentationOverride,
-                        mirrorChannel = mirrorChannel,
+                        mirrorChannel = MirrorNotificationChannel.PROGRESS_NOTIFICATIONS,
                         progressOverride = null,
                         otpOverride = null,
                         smartShortTextOverride = null
                     )
                     mirroredResult()
+                }
+
+                else -> {
+                    val staleAggregateIds = synchronized(stateLock) {
+                        clearAggregateTrackingForSbnKeyLocked(sbn.key)
+                    }
+                    staleAggregateIds.forEach { cancelMirroredNotification(manager, it) }
+                    cancelMirroredNotification(manager, mirrorIdForKey(sbn.key))
+                    notMirroredResult()
                 }
             }
         } catch (error: Throwable) {

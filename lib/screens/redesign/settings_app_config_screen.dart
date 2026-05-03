@@ -180,6 +180,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
     final List<LbListItemData> primaryItems = <LbListItemData>[
       LbListItemData(
         title: strings.appLanguageTitle,
+        description: strings.appLanguageDescription,
         subtitle: _languageLabel(strings),
         onTap: () {
           unawaited(LiveBridgeHaptics.openSurface());
@@ -188,6 +189,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
       ),
       LbListItemData(
         title: strings.keepAliveForegroundTitle,
+        description: strings.keepAliveForegroundDescription,
         showChevron: false,
         toggleValue: _altBackgroundMode,
         onToggle: (bool value) {
@@ -201,6 +203,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
       ),
       LbListItemData(
         title: strings.syncDndTitle,
+        description: strings.syncDndDescription,
         showChevron: false,
         toggleValue: _syncDnd,
         onToggle: (bool value) {
@@ -214,6 +217,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
       ),
       LbListItemData(
         title: strings.preventDismissingTitle,
+        description: strings.preventDismissingDescription,
         showChevron: false,
         toggleValue: _preventDismissing,
         onToggle: (bool value) {

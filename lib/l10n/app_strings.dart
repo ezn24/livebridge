@@ -1559,4 +1559,139 @@ class AppStrings {
     zhHans: '文本进度',
     zhHant: '文字進度',
   );
+
+  String get nativeProgressDescription => tr(
+    en: 'uses Android progress from notifications when available',
+    ru: 'использует прогресс из Android-уведомлений, если он есть',
+  );
+
+  String get textProgressDescription => tr(
+    en: 'detects progress from notification text like 42%',
+    ru: 'определяет прогресс из текста уведомлений, например 42%',
+  );
+
+  String get otpCodesDescription => tr(
+    en: 'detects verification codes and shows them in Live Updates',
+    ru: 'находит коды подтверждения и показывает их в Live Updates',
+  );
+
+  String get autoCopyCodeDescription => tr(
+    en: 'copies detected OTP codes to clipboard automatically',
+    ru: 'автоматически копирует найденные OTP-коды в буфер обмена',
+  );
+
+  String get removeOriginalMessageDescription => tr(
+    en: 'tries to hide the original notification after conversion',
+    ru: 'пытается скрыть исходное уведомление после конвертации',
+  );
+
+  String get taxiDescription => tr(
+    en: 'shows taxi ride state as a Live Update',
+    ru: 'показывает состояние поездки такси в Live Updates',
+  );
+
+  String get deliveriesDescription => tr(
+    en: 'shows delivery progress from food and shopping apps',
+    ru: 'показывает прогресс доставки из еды и магазинов',
+  );
+
+  String get allAppsDescription => tr(
+    en: 'converts matching notifications from every app',
+    ru: 'конвертирует подходящие уведомления из всех приложений',
+  );
+
+  String get onlySelectedDescription => tr(
+    en: 'converts notifications only from apps you select',
+    ru: 'конвертирует уведомления только из выбранных приложений',
+  );
+
+  String get excludeSelectedDescription => tr(
+    en: 'converts every app except the apps you select',
+    ru: 'конвертирует все приложения, кроме выбранных',
+  );
+
+  String get vpnsDescription => tr(
+    en: 'shows active VPN traffic and connection state',
+    ru: 'показывает трафик и состояние активного VPN',
+  );
+
+  String get externalDevicesDescription => tr(
+    en: 'shows connected external devices in Live Updates',
+    ru: 'показывает подключенные внешние устройства в Live Updates',
+  );
+
+  String get ignoreDebuggingDevicesDescription => tr(
+    en: 'hides ADB and debugging device notifications',
+    ru: 'скрывает ADB и уведомления отладочных устройств',
+  );
+
+  String get mediaPlaybackDescription => tr(
+    en: 'shows track controls and playback status in Live Updates',
+    ru: 'показывает управление треком и статус воспроизведения',
+  );
+
+  String get showMediaOnLockDescription => tr(
+    en: 'allows media Live Updates on the lockscreen',
+    ru: 'разрешает показывать медиа Live Updates на экране блокировки',
+  );
+
+  String get useSymbolsInMediaPlayerDescription => tr(
+    en: 'uses ▶, ⏸, ⏮ and ⏭ instead of text actions',
+    ru: 'использует ▶, ⏸, ⏮ и ⏭ вместо текстовых действий',
+  );
+
+  String get callsDescription => tr(
+    en: 'shows ongoing calls as Live Updates',
+    ru: 'показывает активные звонки в Live Updates',
+  );
+
+  String get navigationMapsDescription => tr(
+    en: 'shows the direction and distance in Live Updates',
+    ru: 'показывает направление и расстояние в Live Updates',
+  );
+
+  String get weatherBroadcastsDescription => tr(
+    en: 'shows weather alerts and forecast notifications',
+    ru: 'показывает погодные уведомления и прогнозы',
+  );
+
+  String get appLanguageDescription => tr(
+    en: 'changes the language used by LiveBridge UI',
+    ru: 'меняет язык интерфейса LiveBridge',
+  );
+
+  String get keepAliveForegroundDescription => tr(
+    en: 'uses an alternate foreground mode for stricter firmwares',
+    ru: 'использует альтернативный foreground-режим для строгих прошивок',
+  );
+
+  String get syncDndDescription => tr(
+    en: 'syncs Live Updates behavior with Do Not Disturb',
+    ru: 'синхронизирует поведение Live Updates с режимом Не беспокоить',
+  );
+
+  String get preventDismissingDescription => tr(
+    en: 'restores the LiveBridge notification after it is swiped away',
+    ru: 'восстанавливает уведомление LiveBridge после свайпа',
+  );
+
+  String get conversionLogDescription => tr(
+    en: 'keeps recent converted notifications for debugging',
+    ru: 'сохраняет последние конвертации для отладки',
+  );
+
+  String get otpDedupDescription => tr(
+    en: 'reduces repeated OTP notifications from the same source',
+    ru: 'уменьшает повторы OTP-уведомлений из одного источника',
+  );
+
+  String get smartConversionDedupDescription => tr(
+    en: 'reduces repeated smart conversion notifications',
+    ru: 'уменьшает повторы уведомлений умной конвертации',
+  );
+
+  String get animatedIslandDescription => tr(
+    en: 'adds smooth island text animations for supported conversions',
+    ru: 'добавляет плавные анимации текста острова',
+  );
 }

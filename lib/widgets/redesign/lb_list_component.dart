@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../theme/livebridge_tokens.dart';
+import 'lb_description_popover.dart';
 import 'lb_icon.dart';
 import 'lb_toggle.dart';
 
@@ -10,6 +11,7 @@ class LbListItemData {
   const LbListItemData({
     required this.title,
     this.titleSuffix,
+    this.description,
     this.subtitle,
     this.leadingChild,
     this.leadingIcon,
@@ -31,6 +33,7 @@ class LbListItemData {
 
   final String title;
   final String? titleSuffix;
+  final String? description;
   final String? subtitle;
   final Widget? leadingChild;
   final LbIconSymbol? leadingIcon;
@@ -131,7 +134,23 @@ class _LbListRow extends StatefulWidget {
 }
 
 class _LbListRowState extends State<_LbListRow> {
+  final GlobalKey _descriptionIconKey = GlobalKey();
+  OverlayEntry? _descriptionOverlay;
   bool _isPressed = false;
+
+  @override
+  void didUpdateWidget(covariant _LbListRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.description != widget.item.description) {
+      _hideDescription();
+    }
+  }
+
+  @override
+  void dispose() {
+    _hideDescription();
+    super.dispose();
+  }
 
   void _setPressed(bool value) {
     if (_isPressed == value || !mounted) {
@@ -157,6 +176,40 @@ class _LbListRowState extends State<_LbListRow> {
       return;
     }
     widget.item.onTap!.call();
+  }
+
+  void _toggleDescription() {
+    if (_descriptionOverlay != null) {
+      _hideDescription();
+      return;
+    }
+    final String description = widget.item.description?.trim() ?? '';
+    if (description.isEmpty) {
+      return;
+    }
+    final BuildContext? iconContext = _descriptionIconKey.currentContext;
+    final RenderBox? iconBox = iconContext?.findRenderObject() as RenderBox?;
+    if (iconBox == null || !iconBox.hasSize) {
+      return;
+    }
+    final Offset iconOrigin = iconBox.localToGlobal(Offset.zero);
+    final Offset anchor =
+        iconOrigin + Offset(iconBox.size.width / 2, iconBox.size.height / 2);
+    _descriptionOverlay = OverlayEntry(
+      builder: (BuildContext context) {
+        return LbDescriptionPopover(
+          text: description,
+          anchor: anchor,
+          onDismiss: _hideDescription,
+        );
+      },
+    );
+    Overlay.of(context, rootOverlay: true).insert(_descriptionOverlay!);
+  }
+
+  void _hideDescription() {
+    _descriptionOverlay?.remove();
+    _descriptionOverlay = null;
   }
 
   @override
@@ -220,9 +273,7 @@ class _LbListRowState extends State<_LbListRow> {
                 : const Duration(milliseconds: 140),
             curve: Curves.easeOutCubic,
             decoration: BoxDecoration(
-              color: _isPressed
-                  ? palette.pressedOverlay
-                  : Colors.transparent,
+              color: _isPressed ? palette.pressedOverlay : Colors.transparent,
               borderRadius: BorderRadius.only(
                 topLeft: widget.isFirst ? cardRadius : Radius.zero,
                 topRight: widget.isFirst ? cardRadius : Radius.zero,
@@ -249,13 +300,18 @@ class _LbListRowState extends State<_LbListRow> {
                           child: Row(
                             children: <Widget>[
                               if (!hasLeading)
-                                const SizedBox(width: LbSpacing.listTextOnlyInset),
+                                const SizedBox(
+                                  width: LbSpacing.listTextOnlyInset,
+                                ),
                               Expanded(
                                 child: _LbTextBlock(
                                   title: widget.item.title,
                                   titleSuffix: widget.item.titleSuffix,
+                                  description: widget.item.description,
                                   subtitle: widget.item.subtitle,
                                   enabled: isEnabled,
+                                  descriptionIconKey: _descriptionIconKey,
+                                  onDescriptionTap: _toggleDescription,
                                 ),
                               ),
                               if (hasCompactTrailingPair)
@@ -270,12 +326,13 @@ class _LbListRowState extends State<_LbListRow> {
                                       LbIcon(
                                         symbol: widget.item.trailingIcon!,
                                         size: LbSpacing.listTrailingIconSize,
-                                        color: widget.item.trailingIconColor ??
+                                        color:
+                                            widget.item.trailingIconColor ??
                                             palette.warning,
                                       ),
                                       const SizedBox(
-                                        width:
-                                            LbSpacing.listTrailingChevronIconGap,
+                                        width: LbSpacing
+                                            .listTrailingChevronIconGap,
                                       ),
                                       LbIcon(
                                         symbol: LbIconSymbol.chevronRight,
@@ -290,14 +347,16 @@ class _LbListRowState extends State<_LbListRow> {
                                 LbIcon(
                                   symbol: widget.item.trailingIcon!,
                                   size: LbSpacing.listTrailingIconSize,
-                                  color: widget.item.trailingIconColor ??
+                                  color:
+                                      widget.item.trailingIconColor ??
                                       palette.warning,
                                 ),
                                 const SizedBox(
                                   width: LbSpacing.listTrailingStatusGap,
                                 ),
                               ],
-                              if (widget.item.trailingWidget != null) ...<Widget>[
+                              if (widget.item.trailingWidget !=
+                                  null) ...<Widget>[
                                 SizedBox(
                                   width:
                                       widget.item.trailingWidgetWidth ??
@@ -308,7 +367,8 @@ class _LbListRowState extends State<_LbListRow> {
                                   ),
                                 ),
                               ],
-                              if (!hasCompactTrailingPair && hasTrailing) ...<Widget>[
+                              if (!hasCompactTrailingPair &&
+                                  hasTrailing) ...<Widget>[
                                 SizedBox(
                                   width: LbSpacing.listAccessoryWidth,
                                   child: Align(
@@ -318,8 +378,9 @@ class _LbListRowState extends State<_LbListRow> {
                                             value: widget.item.toggleValue!,
                                             onChanged: widget.item.onToggle,
                                             enabled: isEnabled,
-                                            triggerHaptics:
-                                                widget.item.toggleTriggerHaptics,
+                                            triggerHaptics: widget
+                                                .item
+                                                .toggleTriggerHaptics,
                                           )
                                         : widget.item.showChevron
                                         ? LbIcon(
@@ -363,14 +424,20 @@ class _LbTextBlock extends StatelessWidget {
   const _LbTextBlock({
     required this.title,
     this.titleSuffix,
+    this.description,
     this.subtitle,
     required this.enabled,
+    required this.descriptionIconKey,
+    required this.onDescriptionTap,
   });
 
   final String title;
   final String? titleSuffix;
+  final String? description;
   final String? subtitle;
   final bool enabled;
+  final GlobalKey descriptionIconKey;
+  final VoidCallback onDescriptionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -385,30 +452,15 @@ class _LbTextBlock extends StatelessWidget {
     if (subtitle == null) {
       return Align(
         alignment: Alignment.centerLeft,
-        child: Text.rich(
-          TextSpan(
-            text: title,
-            style: LbTextStyles.body.copyWith(color: titleColor),
-            children: titleSuffix == null
-                ? const <InlineSpan>[]
-                : <InlineSpan>[
-                    WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Transform.translate(
-                        offset: const Offset(0, -LbSpacing.inlineSuffixLift),
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: Text(
-                            titleSuffix!,
-                            style: LbTextStyles.inlineSuffix.copyWith(
-                              color: subtitleColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-          ),
+        child: _LbTitleLine(
+          title: title,
+          titleSuffix: titleSuffix,
+          titleColor: titleColor,
+          suffixColor: subtitleColor,
+          description: description,
+          enabled: enabled,
+          descriptionIconKey: descriptionIconKey,
+          onDescriptionTap: onDescriptionTap,
         ),
       );
     }
@@ -417,15 +469,97 @@ class _LbTextBlock extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          title,
-          style: LbTextStyles.body.copyWith(color: titleColor),
+        _LbTitleLine(
+          title: title,
+          titleSuffix: titleSuffix,
+          titleColor: titleColor,
+          suffixColor: subtitleColor,
+          description: description,
+          enabled: enabled,
+          descriptionIconKey: descriptionIconKey,
+          onDescriptionTap: onDescriptionTap,
         ),
         const SizedBox(height: 2),
         Text(
           subtitle!,
           style: LbTextStyles.caption.copyWith(color: subtitleColor),
         ),
+      ],
+    );
+  }
+}
+
+class _LbTitleLine extends StatelessWidget {
+  const _LbTitleLine({
+    required this.title,
+    this.titleSuffix,
+    required this.titleColor,
+    required this.suffixColor,
+    this.description,
+    required this.enabled,
+    required this.descriptionIconKey,
+    required this.onDescriptionTap,
+  });
+
+  final String title;
+  final String? titleSuffix;
+  final Color titleColor;
+  final Color suffixColor;
+  final String? description;
+  final bool enabled;
+  final GlobalKey descriptionIconKey;
+  final VoidCallback onDescriptionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final LbPalette palette = LbPalette.of(context);
+    final String normalizedDescription = description?.trim() ?? '';
+
+    return Row(
+      mainAxisSize: MainAxisSize.max,
+      children: <Widget>[
+        Flexible(
+          child: Text.rich(
+            TextSpan(
+              text: title,
+              style: LbTextStyles.body.copyWith(color: titleColor),
+              children: titleSuffix == null
+                  ? const <InlineSpan>[]
+                  : <InlineSpan>[
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Transform.translate(
+                          offset: const Offset(0, -LbSpacing.inlineSuffixLift),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text(
+                              titleSuffix!,
+                              style: LbTextStyles.inlineSuffix.copyWith(
+                                color: suffixColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (normalizedDescription.isNotEmpty) ...<Widget>[
+          const SizedBox(width: LbSpacing.listDescriptionIconGap),
+          GestureDetector(
+            key: descriptionIconKey,
+            behavior: HitTestBehavior.opaque,
+            onTap: enabled ? onDescriptionTap : null,
+            child: LbIcon(
+              symbol: LbIconSymbol.info,
+              size: LbSpacing.listDescriptionIconSize,
+              color: enabled ? palette.textSecondary : palette.textMuted,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -456,10 +590,7 @@ class _LbLeadingCircle extends StatelessWidget {
       width: size,
       height: size,
       decoration: item.leadingChild == null
-          ? BoxDecoration(
-              color: backgroundColor,
-              shape: BoxShape.circle,
-            )
+          ? BoxDecoration(color: backgroundColor, shape: BoxShape.circle)
           : null,
       child: item.leadingChild != null
           ? Center(child: item.leadingChild!)

@@ -124,6 +124,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
     final List<LbListItemData> mediaItems = <LbListItemData>[
       LbListItemData(
         title: strings.mediaPlaybackRedesignTitle,
+        description: strings.mediaPlaybackDescription,
         showChevron: false,
         toggleValue: _mediaPlaybackEnabled,
         onToggle: (bool value) {
@@ -137,6 +138,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
       ),
       LbListItemData(
         title: strings.showMediaOnLockTitle,
+        description: strings.showMediaOnLockDescription,
         showChevron: false,
         toggleValue: _showMediaOnLock,
         enabled: _mediaPlaybackEnabled,
@@ -154,6 +156,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
       ),
       LbListItemData(
         title: strings.useSymbolsInMediaPlayerTitle,
+        description: strings.useSymbolsInMediaPlayerDescription,
         showChevron: false,
         toggleValue: _useSymbolsInMediaPlayer,
         enabled: _mediaPlaybackEnabled,
@@ -174,6 +177,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
     final List<LbListItemData> otherItems = <LbListItemData>[
       LbListItemData(
         title: strings.callsTitle,
+        description: strings.callsDescription,
         showChevron: false,
         toggleValue: _callsEnabled,
         onToggle: (bool value) {
@@ -187,6 +191,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
       ),
       LbListItemData(
         title: strings.navigationMapsTitle,
+        description: strings.navigationMapsDescription,
         showChevron: false,
         toggleValue: _navigationEnabled,
         onToggle: (bool value) {
@@ -200,6 +205,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
       ),
       LbListItemData(
         title: strings.weatherBroadcastsTitle,
+        description: strings.weatherBroadcastsDescription,
         showChevron: false,
         toggleValue: _weatherEnabled,
         onToggle: (bool value) {

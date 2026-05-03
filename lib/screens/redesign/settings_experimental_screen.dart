@@ -158,6 +158,7 @@ class _SettingsExperimentalScreenState
     final List<LbListItemData> primaryItems = <LbListItemData>[
       LbListItemData(
         title: strings.otpDedupTitle,
+        description: strings.otpDedupDescription,
         showChevron: false,
         toggleValue: _otpDedupEnabled,
         onToggle: (bool value) {
@@ -171,6 +172,7 @@ class _SettingsExperimentalScreenState
       ),
       LbListItemData(
         title: strings.smartConversionDedupTitle,
+        description: strings.smartConversionDedupDescription,
         showChevron: false,
         toggleValue: _smartDedupEnabled,
         onToggle: (bool value) {
@@ -184,6 +186,7 @@ class _SettingsExperimentalScreenState
       ),
       LbListItemData(
         title: strings.ignoreDebuggingDevicesTitle,
+        description: strings.ignoreDebuggingDevicesDescription,
         showChevron: false,
         toggleValue: _ignoreDebuggingDevices,
         onToggle: (bool value) {

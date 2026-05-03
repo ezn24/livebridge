@@ -169,6 +169,7 @@ class _RulesNetworkConnectionsScreenState
     final List<LbListItemData> primaryItems = <LbListItemData>[
       LbListItemData(
         title: strings.vpnsTitle,
+        description: strings.vpnsDescription,
         showChevron: false,
         toggleValue: _vpnEnabled,
         onToggle: (bool value) {
@@ -182,6 +183,7 @@ class _RulesNetworkConnectionsScreenState
       ),
       LbListItemData(
         title: strings.externalDevicesTitle,
+        description: strings.externalDevicesDescription,
         showChevron: false,
         toggleValue: _externalDevicesEnabled,
         onToggle: (bool value) {
@@ -195,6 +197,7 @@ class _RulesNetworkConnectionsScreenState
       ),
       LbListItemData(
         title: strings.ignoreDebuggingDevicesTitle,
+        description: strings.ignoreDebuggingDevicesDescription,
         showChevron: false,
         toggleValue: _ignoreDebuggingDevices,
         enabled: _externalDevicesEnabled,
