@@ -19,6 +19,7 @@ class RulesMiscellaneousScreen extends StatefulWidget {
 
 class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
   bool _navigationEnabled = true;
+  bool _callsEnabled = true;
   bool _mediaPlaybackEnabled = true;
   bool _showMediaOnLock = false;
   bool _useSymbolsInMediaPlayer = false;
@@ -36,6 +37,8 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
     try {
       final Future<bool> navigationFuture =
           LiveBridgePlatform.getSmartNavigationEnabled();
+      final Future<bool> callsFuture =
+          LiveBridgePlatform.getSmartCallsEnabled();
       final Future<bool> mediaPlaybackFuture =
           LiveBridgePlatform.getSmartMediaPlaybackEnabled();
       final Future<bool> showMediaOnLockFuture =
@@ -46,6 +49,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
           LiveBridgePlatform.getSmartWeatherEnabled();
 
       final bool navigationEnabled = await navigationFuture;
+      final bool callsEnabled = await callsFuture;
       final bool mediaPlaybackEnabled = await mediaPlaybackFuture;
       final bool showMediaOnLock = await showMediaOnLockFuture;
       final bool useSymbolsInMediaPlayer = await useSymbolsInMediaPlayerFuture;
@@ -57,6 +61,7 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
 
       setState(() {
         _navigationEnabled = navigationEnabled;
+        _callsEnabled = callsEnabled;
         _mediaPlaybackEnabled = mediaPlaybackEnabled;
         _showMediaOnLock = showMediaOnLock;
         _useSymbolsInMediaPlayer = useSymbolsInMediaPlayer;
@@ -71,6 +76,14 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
     }
     setState(() => _navigationEnabled = value);
     await LiveBridgePlatform.setSmartNavigationEnabled(value);
+  }
+
+  Future<void> _setCallsEnabled(bool value) async {
+    if (value == _callsEnabled) {
+      return;
+    }
+    setState(() => _callsEnabled = value);
+    await LiveBridgePlatform.setSmartCallsEnabled(value);
   }
 
   Future<void> _setMediaPlaybackEnabled(bool value) async {
@@ -159,6 +172,19 @@ class _RulesMiscellaneousScreenState extends State<RulesMiscellaneousScreen> {
     ];
 
     final List<LbListItemData> otherItems = <LbListItemData>[
+      LbListItemData(
+        title: strings.callsTitle,
+        showChevron: false,
+        toggleValue: _callsEnabled,
+        onToggle: (bool value) {
+          unawaited(_setCallsEnabled(value));
+        },
+        onTap: () {
+          final bool nextValue = !_callsEnabled;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setCallsEnabled(nextValue));
+        },
+      ),
       LbListItemData(
         title: strings.navigationMapsTitle,
         showChevron: false,

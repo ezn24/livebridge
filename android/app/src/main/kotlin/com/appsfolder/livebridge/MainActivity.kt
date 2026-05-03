@@ -476,7 +476,11 @@ class MainActivity : FlutterActivity() {
 
             "getSmartStatusDetectionEnabled" -> res.success(prefs.getSmartStatusDetectionEnabled())
             "setSmartStatusDetectionEnabled" -> {
-                prefs.setSmartStatusDetectionEnabled(call.argument<Boolean>("value") ?: true)
+                val value = call.argument<Boolean>("value") ?: true
+                prefs.setSmartStatusDetectionEnabled(value)
+                if (!value) {
+                    LiveUpdateNotifier.cancelCallMirrors(applicationContext)
+                }
                 res.success(true)
             }
 
@@ -501,6 +505,16 @@ class MainActivity : FlutterActivity() {
             "getSmartDeliveryEnabled" -> res.success(prefs.getSmartDeliveryEnabled())
             "setSmartDeliveryEnabled" -> {
                 prefs.setSmartDeliveryEnabled(call.argument<Boolean>("value") ?: true)
+                res.success(true)
+            }
+
+            "getSmartCallsEnabled" -> res.success(prefs.getSmartCallsEnabled())
+            "setSmartCallsEnabled" -> {
+                val value = call.argument<Boolean>("value") ?: true
+                prefs.setSmartCallsEnabled(value)
+                if (!value) {
+                    LiveUpdateNotifier.cancelCallMirrors(applicationContext)
+                }
                 res.success(true)
             }
 
