@@ -54,6 +54,7 @@ object LiveUpdateNotifier {
     private const val SMART_ISLAND_TOKEN_MAX_LENGTH = 20
     private const val PROGRAMMATIC_MIRROR_CANCEL_GRACE_MS = 2_000L
     private const val FOOD_DELIVERY_AGGREGATE_ENTITY = "delivery"
+    private const val LOCKSCREEN_CONTENT_HIDDEN_TEXT = "Content hidden"
 
     private val OTP_CODE_LENGTH = 4..8
     private val NATIVE_IN_CALL_PACKAGES = setOf(
@@ -165,6 +166,7 @@ object LiveUpdateNotifier {
         context: Context,
         channel: MirrorNotificationChannel
     ) {
+        val lockscreenVisibility = mirrorChannelLockscreenVisibility(context)
         val current = manager.getNotificationChannel(channel.id)
         if (current == null) {
             manager.createNotificationChannel(createChannel(context, channel))
@@ -175,14 +177,14 @@ object LiveUpdateNotifier {
         val shouldUpdate =
             current.name?.toString() != channelText.name ||
                     current.description != channelText.description ||
-                    current.lockscreenVisibility != Notification.VISIBILITY_PUBLIC
+                    current.lockscreenVisibility != lockscreenVisibility
         if (!shouldUpdate) {
             return
         }
 
         current.name = channelText.name
         current.description = channelText.description
-        current.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        current.lockscreenVisibility = lockscreenVisibility
         manager.createNotificationChannel(current)
     }
 
@@ -199,7 +201,15 @@ object LiveUpdateNotifier {
             description = channelText.description
             enableVibration(false)
             setSound(null, null)
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            lockscreenVisibility = mirrorChannelLockscreenVisibility(context)
+        }
+    }
+
+    private fun mirrorChannelLockscreenVisibility(context: Context): Int {
+        return if (ConverterPrefs(context).getHideLockscreenContentEnabled()) {
+            Notification.VISIBILITY_PRIVATE
+        } else {
+            Notification.VISIBILITY_PUBLIC
         }
     }
 
@@ -1661,13 +1671,14 @@ object LiveUpdateNotifier {
         } else {
             displayText
         }
-        val visibility = if (
+        val hideLockscreenContent = runtimePrefs.getHideLockscreenContentEnabled()
+        val visibility = when {
             preferMediaControls &&
-            !runtimePrefs.getSmartMediaPlaybackShowOnLockScreen()
-        ) {
-            NotificationCompat.VISIBILITY_SECRET
-        } else {
-            NotificationCompat.VISIBILITY_PUBLIC
+                    !runtimePrefs.getSmartMediaPlaybackShowOnLockScreen() ->
+                NotificationCompat.VISIBILITY_SECRET
+
+            hideLockscreenContent -> NotificationCompat.VISIBILITY_PRIVATE
+            else -> NotificationCompat.VISIBILITY_PUBLIC
         }
         val useMediaActionSymbols = preferMediaControls &&
                 runtimePrefs.getSmartMediaPlaybackUseSymbolsInPlayer()
@@ -1739,6 +1750,24 @@ object LiveUpdateNotifier {
         }
         applySmallIcon(context, builder, preferredSmallIcon)
         preferredLargeIcon?.let(builder::setLargeIcon)
+
+        if (hideLockscreenContent && visibility == NotificationCompat.VISIBILITY_PRIVATE) {
+            val publicBuilder = NotificationCompat.Builder(context, mirrorChannel.id)
+                .setContentTitle(LOCKSCREEN_CONTENT_HIDDEN_TEXT)
+                .setOnlyAlertOnce(true)
+                .setSilent(true)
+                .setDefaults(0)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setWhen(resolveStableWhen(source, sbn.postTime))
+                .setShowWhen(false)
+                .setColor(progressColor)
+                .setCategory(Notification.CATEGORY_STATUS)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+            applySmallIcon(context, publicBuilder, preferredSmallIcon)
+            builder.setPublicVersion(publicBuilder.build())
+        }
 
         if (requestPromoted) {
             builder.setRequestPromotedOngoing(true)

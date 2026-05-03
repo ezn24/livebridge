@@ -292,6 +292,13 @@ class MainActivity : FlutterActivity() {
                 res.success(true)
             }
 
+            "getHideLockscreenContentEnabled" -> res.success(prefs.getHideLockscreenContentEnabled())
+            "setHideLockscreenContentEnabled" -> {
+                prefs.setHideLockscreenContentEnabled(call.argument<Boolean>("value") ?: false)
+                LiveUpdateNotifier.ensureChannel(applicationContext)
+                res.success(true)
+            }
+
             "getConversionLogEnabled" -> res.success(prefs.getConversionLogEnabled())
             "setConversionLogEnabled" -> {
                 prefs.setConversionLogEnabled(call.argument<Boolean>("value") ?: false)

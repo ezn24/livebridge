@@ -1370,6 +1370,15 @@ class AppStrings {
     zhHant: '防止通知被關閉',
   );
 
+  String get hideLockscreenContentTitle => tr(
+    en: 'Hide lockscreen content',
+    ru: 'Скрывать на локскрине',
+    tr: 'Kilit ekranında içeriği gizle',
+    ptBr: 'Ocultar na tela bloqueada',
+    zhHans: '隐藏锁屏内容',
+    zhHant: '隱藏鎖定畫面內容',
+  );
+
   String get updateChecksTitle => tr(
     en: 'Update checking',
     ru: 'Проверка обновлений',
@@ -1673,6 +1682,11 @@ class AppStrings {
   String get preventDismissingDescription => tr(
     en: 'restores the LiveBridge notification after it is swiped away',
     ru: 'восстанавливает уведомление LiveBridge после свайпа',
+  );
+
+  String get hideLockscreenContentDescription => tr(
+    en: 'shows Content hidden instead of notification text on the lockscreen',
+    ru: 'показывает Content hidden вместо текста уведомления на локскрине',
   );
 
   String get conversionLogDescription => tr(

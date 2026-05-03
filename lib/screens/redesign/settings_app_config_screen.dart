@@ -31,6 +31,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
   bool _altBackgroundMode = false;
   bool _syncDnd = true;
   bool _preventDismissing = false;
+  bool _hideLockscreenContent = false;
   bool _conversionLogEnabled = false;
   String _appLanguageId = appLanguageSystemId;
   int _logLengthMb = 5;
@@ -51,6 +52,8 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
       final Future<bool> syncDndFuture = LiveBridgePlatform.getSyncDndEnabled();
       final Future<bool> preventDismissingFuture =
           LiveBridgePlatform.getPreventMirrorDismissEnabled();
+      final Future<bool> hideLockscreenContentFuture =
+          LiveBridgePlatform.getHideLockscreenContentEnabled();
       final Future<bool> conversionLogEnabledFuture =
           LiveBridgePlatform.getConversionLogEnabled();
       final Future<int> conversionLogMaxBytesFuture =
@@ -61,6 +64,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
       final bool altBackgroundMode = await altBackgroundFuture;
       final bool syncDnd = await syncDndFuture;
       final bool preventDismissing = await preventDismissingFuture;
+      final bool hideLockscreenContent = await hideLockscreenContentFuture;
       final bool conversionLogEnabled = await conversionLogEnabledFuture;
       final int conversionLogMaxBytes = await conversionLogMaxBytesFuture;
       final String appLanguageId = normalizeAppLanguageId(
@@ -79,6 +83,7 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
         _altBackgroundMode = altBackgroundMode;
         _syncDnd = syncDnd;
         _preventDismissing = preventDismissing;
+        _hideLockscreenContent = hideLockscreenContent;
         _conversionLogEnabled = conversionLogEnabled;
         _appLanguageId = appLanguageId;
         _logLengthMb = normalizedLogLengthMb;
@@ -109,6 +114,14 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
     }
     setState(() => _preventDismissing = value);
     await LiveBridgePlatform.setPreventMirrorDismissEnabled(value);
+  }
+
+  Future<void> _setHideLockscreenContent(bool value) async {
+    if (value == _hideLockscreenContent) {
+      return;
+    }
+    setState(() => _hideLockscreenContent = value);
+    await LiveBridgePlatform.setHideLockscreenContentEnabled(value);
   }
 
   Future<void> _setConversionLogEnabled(bool value) async {
@@ -227,6 +240,20 @@ class _SettingsAppConfigScreenState extends State<SettingsAppConfigScreen> {
           final bool nextValue = !_preventDismissing;
           unawaited(LiveBridgeHaptics.toggle(nextValue));
           unawaited(_setPreventDismissing(nextValue));
+        },
+      ),
+      LbListItemData(
+        title: strings.hideLockscreenContentTitle,
+        description: strings.hideLockscreenContentDescription,
+        showChevron: false,
+        toggleValue: _hideLockscreenContent,
+        onToggle: (bool value) {
+          unawaited(_setHideLockscreenContent(value));
+        },
+        onTap: () {
+          final bool nextValue = !_hideLockscreenContent;
+          unawaited(LiveBridgeHaptics.toggle(nextValue));
+          unawaited(_setHideLockscreenContent(nextValue));
         },
       ),
     ];

@@ -102,6 +102,8 @@ class _SettingsReportBugScreenState extends State<SettingsReportBugScreen> {
     final Future<bool> syncDndFuture = LiveBridgePlatform.getSyncDndEnabled();
     final Future<bool> preventDismissingFuture =
         LiveBridgePlatform.getPreventMirrorDismissEnabled();
+    final Future<bool> hideLockscreenContentFuture =
+        LiveBridgePlatform.getHideLockscreenContentEnabled();
     final Future<bool> updateChecksFuture =
         LiveBridgePlatform.getUpdateChecksEnabled();
     final Future<String> appLanguageFuture =
@@ -225,6 +227,7 @@ class _SettingsReportBugScreenState extends State<SettingsReportBugScreen> {
             await networkSpeedThresholdFuture,
         'sync_dnd_enabled': await syncDndFuture,
         'prevent_mirror_dismiss_enabled': await preventDismissingFuture,
+        'hide_lockscreen_content_enabled': await hideLockscreenContentFuture,
         'update_checks_enabled': await updateChecksFuture,
         'app_language': await appLanguageFuture,
         'only_with_progress': await onlyWithProgressFuture,
