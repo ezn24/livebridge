@@ -224,6 +224,11 @@ class AppStrings {
     zhHant: '更新字典',
   );
 
+  String get dictionaryUpdateDescription => tr(
+    en: 'downloads the latest parser dictionaries for enabled languages',
+    ru: 'загружает свежие словари парсинга для включенных языков',
+  );
+
   String get dictionaryEditorTitle => tr(
     en: 'Dictionary editor',
     ru: 'Редактор словаря',
@@ -231,6 +236,11 @@ class AppStrings {
     ptBr: 'Editor de dicionário',
     zhHans: '词典编辑器',
     zhHant: '字典編輯器',
+  );
+
+  String get dictionaryEditorDescription => tr(
+    en: 'in-app dictionary editing will be added later',
+    ru: 'редактирование словарей внутри приложения появится позже',
   );
 
   String get dictionaryComingSoon => tr(
@@ -1061,6 +1071,11 @@ class AppStrings {
     zhHant: '複製偵錯 JSON',
   );
 
+  String get copyDebugJsonDescription => tr(
+    en: 'copies device, permission, settings, and rules state for bug reports',
+    ru: 'копирует состояние устройства, разрешений, настроек и правил для issue',
+  );
+
   String get openGithubPageTitle => tr(
     en: 'Open GitHub page',
     ru: 'Открыть GitHub',
@@ -1070,6 +1085,11 @@ class AppStrings {
     zhHant: '開啟 GitHub 頁面',
   );
 
+  String get openGithubPageDescription => tr(
+    en: 'opens the GitHub issue page for reporting bugs',
+    ru: 'открывает страницу GitHub Issues для багрепорта',
+  );
+
   String get autoCopyDebugJsonTitle => tr(
     en: 'Auto-copy debug JSON',
     ru: 'Автокопирование debug JSON',
@@ -1077,6 +1097,11 @@ class AppStrings {
     ptBr: 'Copiar JSON de debug automaticamente',
     zhHans: '自动复制调试 JSON',
     zhHant: '自動複製偵錯 JSON',
+  );
+
+  String get autoCopyDebugJsonDescription => tr(
+    en: 'copies diagnostics automatically before opening GitHub',
+    ru: 'автоматически копирует диагностику перед открытием GitHub',
   );
 
   String conversionLogFrom(String appLabel) => tr(
@@ -1379,6 +1404,15 @@ class AppStrings {
     zhHant: '隱藏鎖定畫面內容',
   );
 
+  String get disableHintsTitle => tr(
+    en: 'Disable hints',
+    ru: 'Отключить подсказки',
+    tr: 'İpuçlarını kapat',
+    ptBr: 'Desativar dicas',
+    zhHans: '关闭提示',
+    zhHant: '關閉提示',
+  );
+
   String get updateChecksTitle => tr(
     en: 'Update checking',
     ru: 'Проверка обновлений',
@@ -1386,6 +1420,11 @@ class AppStrings {
     ptBr: 'Verificação de atualizações',
     zhHans: '检查更新',
     zhHant: '檢查更新',
+  );
+
+  String get updateChecksDescription => tr(
+    en: 'checks GitHub releases and shows an update card when a new version is available',
+    ru: 'проверяет релизы GitHub и показывает карточку, когда доступна новая версия',
   );
 
   String get experimentalTitle => tr(
@@ -1689,9 +1728,49 @@ class AppStrings {
     ru: 'показывает Content hidden вместо текста уведомления на локскрине',
   );
 
+  String get disableHintsDescription => tr(
+    en: 'hides info icons and hint popovers across the redesign UI',
+    ru: 'скрывает иконки info и всплывающие подсказки в новом интерфейсе',
+  );
+
   String get conversionLogDescription => tr(
     en: 'keeps recent converted notifications for debugging',
     ru: 'сохраняет последние конвертации для отладки',
+  );
+
+  String get logLengthDescription => tr(
+    en: 'limits how much conversion log data is kept on device',
+    ru: 'ограничивает объем лога конвертаций на устройстве',
+  );
+
+  String get networkSpeedDescription => tr(
+    en: 'shows current network traffic as a Live Update',
+    ru: 'показывает текущий трафик сети как Live Update',
+  );
+
+  String get networkSpeedThresholdDescription => tr(
+    en: 'hides the network speed Live Update below this traffic level',
+    ru: 'скрывает Live Update скорости сети ниже этого порога',
+  );
+
+  String get xiaomiHyperIslandDescription => tr(
+    en: 'enables Xiaomi HyperIsland-specific Live Updates behavior',
+    ru: 'включает поведение Live Updates для Xiaomi HyperIsland',
+  );
+
+  String get aospCuttingDescription => tr(
+    en: 'shortens island text on AOSP-like firmwares that clip long content',
+    ru: 'укорачивает текст острова на AOSP-прошивках, где длинный текст обрезается',
+  );
+
+  String get aospCuttingLengthDescription => tr(
+    en: 'sets the maximum island text length for AOSP cutting',
+    ru: 'задает максимальную длину текста острова для AOSP-обрезки',
+  );
+
+  String get updateFrequencyDescription => tr(
+    en: 'controls how often animated island text frames are refreshed',
+    ru: 'задает частоту обновления кадров анимации текста острова',
   );
 
   String get otpDedupDescription => tr(

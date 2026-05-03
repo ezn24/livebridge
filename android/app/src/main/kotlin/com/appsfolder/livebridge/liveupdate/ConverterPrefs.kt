@@ -96,6 +96,14 @@ class ConverterPrefs(context: Context) {
         prefs.edit().putBoolean(KEY_HIDE_LOCKSCREEN_CONTENT_ENABLED, value).apply()
     }
 
+    fun getHintsDisabled(): Boolean {
+        return prefs.getBoolean(KEY_HINTS_DISABLED, false)
+    }
+
+    fun setHintsDisabled(value: Boolean) {
+        prefs.edit().putBoolean(KEY_HINTS_DISABLED, value).apply()
+    }
+
     fun getConversionLogEnabled(): Boolean {
         return prefs.getBoolean(KEY_CONVERSION_LOG_ENABLED, false)
     }
@@ -804,6 +812,7 @@ class ConverterPrefs(context: Context) {
             "prevent_mirror_dismiss_enabled"
         private const val KEY_HIDE_LOCKSCREEN_CONTENT_ENABLED =
             "hide_lockscreen_content_enabled"
+        private const val KEY_HINTS_DISABLED = "hints_disabled"
         private const val KEY_CONVERSION_LOG_ENABLED = "conversion_log_enabled"
         private const val KEY_BUG_REPORT_AUTO_COPY_ENABLED = "bug_report_auto_copy_enabled"
         private const val KEY_APP_LANGUAGE_TAG = "app_language_tag"

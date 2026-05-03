@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/livebridge_tokens.dart';
 import 'lb_description_popover.dart';
+import 'lb_hints_controller.dart';
 import 'lb_icon.dart';
 import 'lb_toggle.dart';
 
@@ -136,7 +138,15 @@ class _LbListRow extends StatefulWidget {
 class _LbListRowState extends State<_LbListRow> {
   final GlobalKey _descriptionIconKey = GlobalKey();
   OverlayEntry? _descriptionOverlay;
+  bool _listeningForOutsidePointer = false;
   bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    LbHintsController.disabled.addListener(_handleHintsDisabledChanged);
+    unawaited(LbHintsController.load());
+  }
 
   @override
   void didUpdateWidget(covariant _LbListRow oldWidget) {
@@ -148,8 +158,59 @@ class _LbListRowState extends State<_LbListRow> {
 
   @override
   void dispose() {
+    LbHintsController.disabled.removeListener(_handleHintsDisabledChanged);
     _hideDescription();
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    _hideDescription();
+    super.deactivate();
+  }
+
+  void _handleHintsDisabledChanged() {
+    if (LbHintsController.disabled.value) {
+      _hideDescription();
+    }
+  }
+
+  void _startOutsidePointerListener() {
+    if (_listeningForOutsidePointer) {
+      return;
+    }
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_handleGlobalPointer);
+    _listeningForOutsidePointer = true;
+  }
+
+  void _stopOutsidePointerListener() {
+    if (!_listeningForOutsidePointer) {
+      return;
+    }
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(
+      _handleGlobalPointer,
+    );
+    _listeningForOutsidePointer = false;
+  }
+
+  void _handleGlobalPointer(PointerEvent event) {
+    if (event is! PointerDownEvent) {
+      return;
+    }
+    if (_isInsideDescriptionIcon(event.position)) {
+      return;
+    }
+    _hideDescription();
+  }
+
+  bool _isInsideDescriptionIcon(Offset position) {
+    final BuildContext? iconContext = _descriptionIconKey.currentContext;
+    final RenderObject? renderObject = iconContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return false;
+    }
+    final Offset origin = renderObject.localToGlobal(Offset.zero);
+    return (origin & renderObject.size).contains(position);
   }
 
   void _setPressed(bool value) {
@@ -197,17 +258,15 @@ class _LbListRowState extends State<_LbListRow> {
         iconOrigin + Offset(iconBox.size.width / 2, iconBox.size.height / 2);
     _descriptionOverlay = OverlayEntry(
       builder: (BuildContext context) {
-        return LbDescriptionPopover(
-          text: description,
-          anchor: anchor,
-          onDismiss: _hideDescription,
-        );
+        return LbDescriptionPopover(text: description, anchor: anchor);
       },
     );
     Overlay.of(context, rootOverlay: true).insert(_descriptionOverlay!);
+    _startOutsidePointerListener();
   }
 
   void _hideDescription() {
+    _stopOutsidePointerListener();
     _descriptionOverlay?.remove();
     _descriptionOverlay = null;
   }
@@ -547,19 +606,33 @@ class _LbTitleLine extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (normalizedDescription.isNotEmpty) ...<Widget>[
-          const SizedBox(width: LbSpacing.listDescriptionIconGap),
-          GestureDetector(
-            key: descriptionIconKey,
-            behavior: HitTestBehavior.opaque,
-            onTap: enabled ? onDescriptionTap : null,
-            child: LbIcon(
-              symbol: LbIconSymbol.info,
-              size: LbSpacing.listDescriptionIconSize,
-              color: enabled ? palette.textSecondary : palette.textMuted,
-            ),
+        if (normalizedDescription.isNotEmpty)
+          ValueListenableBuilder<bool>(
+            valueListenable: LbHintsController.disabled,
+            builder: (BuildContext context, bool hintsDisabled, Widget? child) {
+              if (hintsDisabled) {
+                return const SizedBox.shrink();
+              }
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const SizedBox(width: LbSpacing.listDescriptionIconGap),
+                  GestureDetector(
+                    key: descriptionIconKey,
+                    behavior: HitTestBehavior.opaque,
+                    onTap: enabled ? onDescriptionTap : null,
+                    child: LbIcon(
+                      symbol: LbIconSymbol.info,
+                      size: LbSpacing.listDescriptionIconSize,
+                      color: enabled
+                          ? palette.textSecondary
+                          : palette.textMuted,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
-        ],
       ],
     );
   }

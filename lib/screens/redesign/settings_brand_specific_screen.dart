@@ -7,6 +7,7 @@ import '../../platform/livebridge_platform.dart';
 import '../../theme/livebridge_tokens.dart';
 import '../../widgets/redesign/lb_detail_screen.dart';
 import '../../widgets/redesign/lb_icon.dart';
+import '../../widgets/redesign/lb_info_title.dart';
 import '../../widgets/redesign/lb_slider.dart';
 import '../../widgets/redesign/lb_toggle.dart';
 
@@ -133,9 +134,10 @@ class _SettingsBrandSpecificScreenState
                 children: <Widget>[
                   const SizedBox(width: LbSpacing.listTextOnlyInset),
                   Expanded(
-                    child: Text(
-                      strings.xiaomiHyperIslandTitle,
-                      style: LbTextStyles.body.copyWith(
+                    child: LbInfoTitle(
+                      title: strings.xiaomiHyperIslandTitle,
+                      description: strings.xiaomiHyperIslandDescription,
+                      titleStyle: LbTextStyles.body.copyWith(
                         color: palette.textPrimary,
                       ),
                     ),
@@ -168,9 +170,10 @@ class _SettingsBrandSpecificScreenState
                     children: <Widget>[
                       const SizedBox(width: LbSpacing.listTextOnlyInset),
                       Expanded(
-                        child: Text(
-                          strings.aospCuttingTitle,
-                          style: LbTextStyles.body.copyWith(
+                        child: LbInfoTitle(
+                          title: strings.aospCuttingTitle,
+                          description: strings.aospCuttingDescription,
+                          titleStyle: LbTextStyles.body.copyWith(
                             color: palette.textPrimary,
                           ),
                         ),
@@ -208,9 +211,10 @@ class _SettingsBrandSpecificScreenState
                     Row(
                       children: <Widget>[
                         Expanded(
-                          child: Text(
-                            strings.lengthTitle,
-                            style: LbTextStyles.body.copyWith(
+                          child: LbInfoTitle(
+                            title: strings.lengthTitle,
+                            description: strings.aospCuttingLengthDescription,
+                            titleStyle: LbTextStyles.body.copyWith(
                               color: palette.textPrimary,
                             ),
                           ),

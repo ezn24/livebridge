@@ -8,6 +8,7 @@ import '../../theme/livebridge_tokens.dart';
 import '../../utils/livebridge_haptics.dart';
 import '../../widgets/redesign/lb_detail_screen.dart';
 import '../../widgets/redesign/lb_icon.dart';
+import '../../widgets/redesign/lb_info_title.dart';
 import '../../widgets/redesign/lb_list_component.dart';
 import '../../widgets/redesign/lb_slider.dart';
 import '../../widgets/redesign/lb_toggle.dart';
@@ -225,9 +226,10 @@ class _SettingsExperimentalScreenState
                     children: <Widget>[
                       const SizedBox(width: LbSpacing.listTextOnlyInset),
                       Expanded(
-                        child: Text(
-                          strings.animatedIslandRedesignTitle,
-                          style: LbTextStyles.body.copyWith(
+                        child: LbInfoTitle(
+                          title: strings.animatedIslandRedesignTitle,
+                          description: strings.animatedIslandDescription,
+                          titleStyle: LbTextStyles.body.copyWith(
                             color: palette.textPrimary,
                           ),
                         ),
@@ -265,9 +267,10 @@ class _SettingsExperimentalScreenState
                     Row(
                       children: <Widget>[
                         Expanded(
-                          child: Text(
-                            strings.updateFrequencyTitle,
-                            style: LbTextStyles.body.copyWith(
+                          child: LbInfoTitle(
+                            title: strings.updateFrequencyTitle,
+                            description: strings.updateFrequencyDescription,
+                            titleStyle: LbTextStyles.body.copyWith(
                               color: palette.textPrimary,
                             ),
                           ),

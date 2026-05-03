@@ -326,6 +326,13 @@ class LbEffects {
 
   static const double modalSheetBackdropBlur = 7;
   static const double modalSheetBackdropTint = 0.16;
+  static const double descriptionPopoverBackdropBlur = 8;
+  static const double descriptionPopoverBackdropAlpha = 0.88;
+  static const double descriptionPopoverShadowAlpha = 0.20;
+  static const double descriptionPopoverShadowBlur = 8;
+  static const double descriptionPopoverShadowOffsetY = 16;
+  static const double descriptionPopoverAmbientShadowAlpha = 0.09;
+  static const double descriptionPopoverAmbientShadowBlur = 6;
 }
 
 class LbMotion {
