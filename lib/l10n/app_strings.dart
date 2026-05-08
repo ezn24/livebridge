@@ -1214,7 +1214,7 @@ class AppStrings {
     ptBr: 'Tamanho do log',
     zhHans: '日志大小',
     zhHant: '記錄大小',
-    ko: '로그 길이',
+    ko: '로그 크가',
   );
 
   String get xiaomiHyperIslandTitle => tr(
@@ -1709,7 +1709,7 @@ class AppStrings {
     ptBr: 'Experimental',
     zhHans: '实验功能',
     zhHant: '實驗功能',
-    ko: '불안정',
+    ko: '실험실',
   );
 
   String get aospCuttingTitle => tr(
