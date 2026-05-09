@@ -455,8 +455,8 @@ class AppStrings {
     ru: 'by ',
     tr: 'by ',
     ptBr: 'por ',
-    zhHans: 'by ',
-    zhHant: 'by ',
+    zhHans: '由',
+    zhHant: '由',
   );
 
   String get discussTitle => tr(
