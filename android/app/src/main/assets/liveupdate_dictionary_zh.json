@@ -21,7 +21,9 @@
         "blinkit",
         "instamart",
         "bigbasket",
-        "easi"
+        "easi.customer",
+        "fantuan.customer",
+        "waimai"
       ],
       "text_triggers": [
         "订单",
