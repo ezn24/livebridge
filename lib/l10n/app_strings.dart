@@ -502,8 +502,8 @@ class AppStrings {
     ru: 'by ',
     tr: 'by ',
     ptBr: 'por ',
-    zhHans: 'by ',
-    zhHant: 'by ',
+    zhHans: '由',
+    zhHant: '由',
     ko: '개발자: ',
   );
 
